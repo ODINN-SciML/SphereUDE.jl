@@ -1,0 +1,11 @@
+name: SphereFit
+channels:
+  - conda-forge
+dependencies:
+  - future
+  - matplotlib
+  - cartopy
+  - pandas
+  - seaborn
+  - pip: 
+    - pmagpy==4.2.106
