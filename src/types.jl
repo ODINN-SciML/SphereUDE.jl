@@ -1,13 +1,16 @@
 export SphereParameters, AbstractParameters
 export SphereData, AbstractData
+export Results, AbstractResults
 
 abstract type AbstractParameters end
 
-@kwdef struct SphereParameters{F <: AbstractFloat} <: AbstractParameters
+@kwdef struct SphereParameters{F <: AbstractFloat, I<: Int} <: AbstractParameters
     tmin::F
     tmax::F
     u0::Union{Vector{F}, Nothing}
     ωmax::F
+    niter_ADAM::I
+    niter_LBFGS::I
     reltol::F
     abstol::F
 end
@@ -18,4 +21,14 @@ abstract type AbstractData end
     times::Vector{F}
     directions::Matrix{F}
     kappas::Union{Vector{F}, Nothing}
+end
+
+abstract type AbstractResult end
+
+@kwdef struct Results{F <: AbstractFloat} <: AbstractResult
+    θ_trained::ComponentVector
+    U::Lux.Chain
+    st::NamedTuple
+    fit_times::Vector{F}
+    fit_directions::Matrix{F}
 end

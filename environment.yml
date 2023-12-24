@@ -9,3 +9,5 @@ dependencies:
   - seaborn
   - pip: 
     - pmagpy==4.2.106
+    # GUI interface for VSCode
+    - PyQt5  

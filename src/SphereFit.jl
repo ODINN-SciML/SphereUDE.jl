@@ -11,8 +11,9 @@ using SciMLSensitivity
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
 using ComponentArrays: ComponentVector
 
-export SphereParameters, SphereData 
+export SphereParameters, SphereData, cart2sph
 export train_sphere
+export Results
 
 include("utils.jl")
 include("types.jl")

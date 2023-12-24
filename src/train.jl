@@ -52,6 +52,9 @@ function train_sphere(data::AbstractData,
         # Empirical error
         l_ = mean(abs2, u_ .- data.directions)
         return l_
+        # TO DO: add regularization
+        # ...
+        # ...
     end
 
     losses = Float64[]
@@ -67,16 +70,22 @@ function train_sphere(data::AbstractData,
     optf = Optimization.OptimizationFunction((x, θ) -> loss(x), adtype)
     optprob = Optimization.OptimizationProblem(optf, ComponentVector{Float64}(θ))
 
-    res1 = Optimization.solve(optprob, ADAM(0.001), callback=callback, maxiters=1000)
+    res1 = Optimization.solve(optprob, ADAM(0.001), callback=callback, maxiters=params.niter_ADAM)
     println("Training loss after $(length(losses)) iterations: $(losses[end])")
 
     optprob2 = Optimization.OptimizationProblem(optf, res1.u)
-    res2 = Optimization.solve(optprob2, Optim.LBFGS(), callback=callback, maxiters=300)
+    res2 = Optimization.solve(optprob2, Optim.LBFGS(), callback=callback, maxiters=params.niter_LBFGS)
     println("Final training loss after $(length(losses)) iterations: $(losses[end])")
 
+    # Optimized NN parameters
     θ_trained = res2.u
 
-    return θ_trained, U, st
+    # Final Fit 
+    fit_times = collect(params.tmin:0.1:params.tmax)
+    fit_directions = predict(θ_trained, T=fit_times)
+
+    return Results(θ_trained=θ_trained, U=U, st=st,
+                   fit_times=fit_times, fit_directions=fit_directions)
 end
 
 

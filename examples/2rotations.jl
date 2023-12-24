@@ -8,6 +8,10 @@ using Optimization, OptimizationOptimisers, OptimizationOptimJL
 
 using SphereFit
 
+##############################################################
+###############  Simulation of Simple Example ################
+##############################################################
+
 # Random seed
 using Random
 rng = Random.default_rng()
@@ -52,8 +56,54 @@ true_sol  = solve(prob, Tsit5(), reltol=reltol, abstol=abstol, saveat=times_samp
 X_noiseless = Array(true_sol)
 X_true = mapslices(x -> rand(sampler(VonMisesFisher(x/norm(x), κ)), 1), X_noiseless, dims=1)
 
-### Training example
-data   = SphereData(times=times_samples, directions=X_true, kappas=nothing)
-params = SphereParameters(tmin=tspan[1], tmax=tspan[2], u0=[0.0, 0.0, -1.0], ωmax=2*ω₀, reltol=reltol, abstol=abstol)
+##############################################################
+#######################  Training  ###########################
+##############################################################
 
-θ_trained, U, st = train_sphere(data, params, rng, nothing)
+data   = SphereData(times=times_samples, directions=X_true, kappas=nothing)
+params = SphereParameters(tmin=tspan[1], tmax=tspan[2], 
+                          u0=[0.0, 0.0, -1.0], ωmax=2*ω₀, reltol=reltol, abstol=abstol,
+                          niter_ADAM=1000, niter_LBFGS=300)
+
+results = train_sphere(data, params, rng, nothing)
+
+
+##############################################################
+######################  PyCall Plots #########################
+##############################################################
+
+using PyPlot, PyCall
+
+X_true_sph = cart2sph(X_true, radians=false)
+
+mpl_colors = pyimport("matplotlib.colors")
+mpl_colormap = pyimport("matplotlib.cm")
+sns = pyimport("seaborn")
+ccrs = pyimport("cartopy.crs")
+feature = pyimport("cartopy.feature")
+
+plt.figure(figsize=(10,10))
+ax = plt.axes(projection=ccrs.Orthographic(central_latitude=-20, central_longitude=150))
+
+# ax.coastlines()
+ax.gridlines()
+ax.set_global()
+
+cmap = mpl_colormap.get_cmap("viridis")
+# norm = mpl_colors.Normalize(results.fit_times[1], results.fit_times[end])
+
+sns.scatterplot(ax=ax, x = X_true_sph[1,:], y=X_true_sph[2, :], 
+                hue = times_samples, s=50,
+                palette="viridis",
+                transform = ccrs.PlateCarree());
+
+X_fit_sph = cart2sph(results.fit_directions, radians=false)
+
+for i in 1:(length(results.fit_times)-1)
+    plt.plot([X_fit_sph[1,i], X_fit_sph[1,i+1]], 
+             [X_fit_sph[2,i], X_fit_sph[2,i+1]],
+              linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
+              transform = ccrs.Geodetic())
+end
+
+plt.savefig("examples/plot.pdf", format="pdf")
