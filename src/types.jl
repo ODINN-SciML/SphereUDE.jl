@@ -1,10 +1,10 @@
 export SphereParameters, AbstractParameters
 export SphereData, AbstractData
-export Results, AbstractResults
+export Results, AbstractResult
 
 abstract type AbstractParameters end
 
-@kwdef struct SphereParameters{F <: AbstractFloat, I<: Int} <: AbstractParameters
+@kwdef struct SphereParameters{F <: AbstractFloat, I <: Int} <: AbstractParameters
     tmin::F
     tmax::F
     u0::Union{Vector{F}, Nothing}
@@ -21,6 +21,7 @@ abstract type AbstractData end
     times::Vector{F}
     directions::Matrix{F}
     kappas::Union{Vector{F}, Nothing}
+    L::Union{Function, Nothing}
 end
 
 abstract type AbstractResult end
