@@ -22,10 +22,10 @@ function get_NN(params, rng, θ_trained)
     return U, θ, st
 end
 
-function train_sphere(data::AbstractData,
-                      params::AbstractParameters,
-                      rng, 
-                      θ_trained=[])
+function train(data::AbstractData,
+               params::AbstractParameters,
+               rng, 
+               θ_trained=[])
 
     U, θ, st = get_NN(params, rng, θ_trained)
 
@@ -50,17 +50,63 @@ function train_sphere(data::AbstractData,
     function loss(θ)
         u_ = predict(θ)
         # Empirical error
-        l_ = mean(abs2, u_ .- data.directions)
+        # l_emp = mean(abs2, u_ .- data.directions)
+        if isnothing(data.kappas)
+            # The 3 is needed since the mean is computen on a 3xN matrix
+            l_emp = 1 - 3 * mean(u_ .* data.directions)
+        else
+            l_emp = norm(data.kappas)^2 - 3 * mean(data.kappas .* u_ .* data.directions)
+        end
+        # Regularization
+        l_reg = 0.0
+        if !isnothing(params.reg)
+            for (order, power, λ) in params.reg    
+                l_reg += λ * regularization(θ; order=order, power=power)      
+            end 
+        end
+        return l_emp + l_reg
+    end
+
+    function regularization(θ; order, power, timesteps=1000)
+        Δt = (params.tmax - params.tmin) / timesteps
+        times_reg = collect(params.tmin:Δt:params.tmax)
+        # LinRange does not propagate thought the backprop step!
+        # times_reg = collect(LinRange(params.tmin, params.tmax, timesteps))
+        l_ = 0.0
+        if order==0
+            for t in times_reg
+                l_ += norm(U([t], θ, st)[1])
+            end
+        elseif order==1
+            if params.reg_differentiation=="AD"
+                # Compute gradient using automatic differentiaion in the NN
+                # This currently doesn't run... too slow.
+                for t in times_reg
+                    grad = Zygote.jacobian(first ∘ U, [t], θ, st)[1]
+                    l_ += norm(grad)^power
+                end
+            else
+                # Compute finite differences
+                # L₀ = U([times_reg[begin]], θ, st)[1]
+                for i in 2:timesteps
+                    t₀, t₁ = times_reg[(i-1):i]
+                    L₀ = (first ∘ U)([t₀], θ, st)
+                    L₁ = (first ∘ U)([t₁], θ, st)
+                    grad = (L₁ .- L₀) / (t₁-t₀)
+                    l_ += norm(grad)^power
+                    # L₀ = L₁
+                end
+            end
+        else
+            throw("Method no implemeted")
+        end
         return l_
-        # TO DO: add regularization
-        # ...
-        # ...
     end
 
     losses = Float64[]
     callback = function (p, l)
         push!(losses, l)
-        if length(losses) % 50 == 0
+        if length(losses) % 20 == 0
             println("Current loss after $(length(losses)) iterations: $(losses[end])")
         end
         return false
@@ -87,6 +133,3 @@ function train_sphere(data::AbstractData,
     return Results(θ_trained=θ_trained, U=U, st=st,
                    fit_times=fit_times, fit_directions=fit_directions)
 end
-
-
-

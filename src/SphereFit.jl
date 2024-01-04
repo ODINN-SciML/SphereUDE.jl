@@ -1,3 +1,4 @@
+__precompile__()
 module SphereFit
 
 # types
@@ -5,7 +6,7 @@ using Base: @kwdef
 # utils 
 # training 
 using LinearAlgebra, Statistics
-using Lux 
+using Lux, Zygote
 using OrdinaryDiffEq
 using SciMLSensitivity
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
@@ -15,8 +16,9 @@ using PyPlot, PyCall
 # Debugging
 using Infiltrator
 
+# Do I need to repeat these here if I have them in their respective import files?
 export SphereParameters, SphereData, cart2sph
-export train_sphere
+export train
 export Results
 export plot_sphere
 

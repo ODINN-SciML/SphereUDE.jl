@@ -9,8 +9,10 @@ abstract type AbstractParameters end
     tmax::F
     u0::Union{Vector{F}, Nothing}
     ωmax::F
+    reg::Union{Nothing,Array{Tuple{Int64, Float64, Float64}}} # order, power, λ
     niter_ADAM::I
     niter_LBFGS::I
+    reg_differentiation::Union{Nothing, String}
     reltol::F
     abstol::F
 end

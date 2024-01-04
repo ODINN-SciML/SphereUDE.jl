@@ -59,10 +59,11 @@ X_true = mapslices(x -> rand(sampler(VonMisesFisher(x/norm(x), κ)), 1), X_noise
 data   = SphereData(times=times_samples, directions=X_true, kappas=nothing, L=L_true)
 
 params = SphereParameters(tmin=tspan[1], tmax=tspan[2], 
+                          reg=[(1,1.0,1.0)],
                           u0=u0, ωmax=ωmax, reltol=reltol, abstol=abstol,
                           niter_ADAM=1000, niter_LBFGS=300)
 
-results = train_sphere(data, params, rng, nothing)
+results = train(data, params, rng, nothing)
 
 ##############################################################
 ######################  PyCall Plots #########################

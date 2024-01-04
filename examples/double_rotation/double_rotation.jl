@@ -17,7 +17,7 @@ using Random
 rng = Random.default_rng()
 Random.seed!(rng, 666)
 # Fisher concentration parameter on observations (small = more dispersion)
-κ = 200 
+κ = 20000
 
 # Total time simulation
 tspan = [0, 130.0]
@@ -66,10 +66,11 @@ X_true = mapslices(x -> rand(sampler(VonMisesFisher(x/norm(x), κ)), 1), X_noise
 
 data   = SphereData(times=times_samples, directions=X_true, kappas=nothing, L=L_true)
 params = SphereParameters(tmin=tspan[1], tmax=tspan[2], 
+                          reg=[(1, 1.0, 0.001)],
                           u0=[0.0, 0.0, -1.0], ωmax=2*ω₀, reltol=reltol, abstol=abstol,
-                          niter_ADAM=1000, niter_LBFGS=300)
+                          niter_ADAM=1000, niter_LBFGS=1000, reg_differentiation=nothing)
 
-results = train_sphere(data, params, rng, nothing)
+results = train(data, params, rng, nothing)
 
 ##############################################################
 ######################  PyCall Plots #########################
