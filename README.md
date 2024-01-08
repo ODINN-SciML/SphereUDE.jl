@@ -1,6 +1,8 @@
 # SphereFit
 
 [![Build Status](https://github.com/facusapienza21/SphereFit.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/facusapienza21/SphereFit.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/facusapienza21/SphereFit.jl/graph/badge.svg?token=UC0KFSUU3X)](https://codecov.io/gh/facusapienza21/SphereFit.jl)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
 
