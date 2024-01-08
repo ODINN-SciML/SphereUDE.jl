@@ -67,7 +67,7 @@ function train(data::AbstractData,
         return l_emp + l_reg
     end
 
-    function regularization(θ; order, power, timesteps=1000)
+    function regularization(θ; order, power, timesteps=100)
         Δt = (params.tmax - params.tmin) / timesteps
         times_reg = collect(params.tmin:Δt:params.tmax)
         # LinRange does not propagate thought the backprop step!
@@ -75,7 +75,7 @@ function train(data::AbstractData,
         l_ = 0.0
         if order==0
             for t in times_reg
-                l_ += norm(U([t], θ, st)[1])
+                l_ += norm(U([t], θ, st)[1])^power
             end
         elseif order==1
             if params.reg_differentiation=="AD"
@@ -85,7 +85,7 @@ function train(data::AbstractData,
                     grad = Zygote.jacobian(first ∘ U, [t], θ, st)[1]
                     l_ += norm(grad)^power
                 end
-            else
+            elseif params.reg_differentiation=="Finite differences"
                 # Compute finite differences
                 # L₀ = U([times_reg[begin]], θ, st)[1]
                 for i in 2:timesteps
@@ -96,9 +96,11 @@ function train(data::AbstractData,
                     l_ += norm(grad)^power
                     # L₀ = L₁
                 end
+            else
+                throw("Method no implemented.")
             end
         else
-            throw("Method no implemeted")
+            throw("Method no implemented")
         end
         return l_
     end
@@ -116,7 +118,7 @@ function train(data::AbstractData,
     optf = Optimization.OptimizationFunction((x, θ) -> loss(x), adtype)
     optprob = Optimization.OptimizationProblem(optf, ComponentVector{Float64}(θ))
 
-    res1 = Optimization.solve(optprob, ADAM(0.001), callback=callback, maxiters=params.niter_ADAM)
+    res1 = Optimization.solve(optprob, ADAM(0.002), callback=callback, maxiters=params.niter_ADAM)
     println("Training loss after $(length(losses)) iterations: $(losses[end])")
 
     optprob2 = Optimization.OptimizationProblem(optf, res1.u)
