@@ -3,21 +3,11 @@ export train
 function get_NN(params, rng, θ_trained)
     # Define neural network 
     U = Lux.Chain(
-        Lux.Dense(1,  5,  tanh), 
-        Lux.Dense(5,  10, tanh), 
-        Lux.Dense(10, 5,  tanh), 
+        Lux.Dense(1,  5,  relu_cap), # explore discontinuity function for activation
+        Lux.Dense(5,  10, relu_cap), 
+        Lux.Dense(10, 5,  relu_cap), 
         Lux.Dense(5,  3,  x->sigmoid_cap(x; ω₀=params.ωmax))
     )
-    # This is what we have in ODINN.jl, but not clear if neccesary
-    #
-    # UA = Flux.f64(UA)
-    # # See if parameters need to be retrained or not
-    # θ, UA_f = Flux.destructure(UA)
-    # if !isempty(θ_trained)
-    #     θ = θ_trained
-    # end
-    # return UA_f, θ
-
     θ, st = Lux.setup(rng, U)
     return U, θ, st
 end
@@ -28,6 +18,9 @@ function train(data::AbstractData,
                θ_trained=[])
 
     U, θ, st = get_NN(params, rng, θ_trained)
+
+    # one option is to restrict where the NN is evaluated to discrete t to 
+    # generate piece-wise dynamics.
 
     function ude_rotation!(du, u, p, t)
         # Angular momentum given by network prediction

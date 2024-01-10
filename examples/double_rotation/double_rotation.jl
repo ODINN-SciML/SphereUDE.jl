@@ -18,7 +18,7 @@ rng = Random.default_rng()
 Random.seed!(rng, 666)
 
 # Total time simulation
-tspan = [0, 130.0]
+tspan = [0, 160.0]
 # Number of sample points
 N_samples = 50
 # Times where we sample points
@@ -64,13 +64,13 @@ X_true = X_noiseless + FisherNoise(kappa=200.)
 
 data   = SphereData(times=times_samples, directions=X_true, kappas=nothing, L=L_true)
 
-regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode="Finite Differences"), 
+regs = [Regularization(order=1, power=1.0, λ=0.001, diff_mode="Finite Differences"), 
         Regularization(order=0, power=2.0, λ=0.1, diff_mode="Finite Differences")]
 
 params = SphereParameters(tmin=tspan[1], tmax=tspan[2], 
                           reg=regs, 
-                          u0=[0.0, 0.0, -1.0], ωmax=2ω₀, reltol=reltol, abstol=abstol,
-                          niter_ADAM=1000, niter_LBFGS=400)
+                          u0=[0.0, 0.0, -1.0], ωmax=ω₀, reltol=reltol, abstol=abstol,
+                          niter_ADAM=1000, niter_LBFGS=600)
 
 results = train(data, params, rng, nothing)
 
@@ -78,5 +78,5 @@ results = train(data, params, rng, nothing)
 ######################  PyCall Plots #########################
 ##############################################################
 
-plot_sphere(data, results, -20., 150., "examples/double_rotation/plot_module.pdf")
+plot_sphere(data, results, -20., 150., "examples/double_rotation/plot_sphere.pdf")
 plot_L(data, results, saveas="examples/double_rotation/plot_L.pdf")
