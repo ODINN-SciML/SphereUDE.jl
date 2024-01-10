@@ -91,14 +91,9 @@ function train(data::AbstractData,
                 end
             elseif reg.diff_mode=="Finite Differences"
                 # Compute finite differences
-                # Do this with alocating memory!!! 
-                for i in 2:timesteps
-                    t₀, t₁ = times_reg[(i-1):i]
-                    L₀ = (first ∘ U)([t₀], θ, st)
-                    L₁ = (first ∘ U)([t₁], θ, st)
-                    grad = (L₁ .- L₀) / (t₁-t₀)
-                    l_ += norm(grad)^reg.power
-                end
+                L_estimated = map(t -> (first ∘ U)([t], θ, st), times_reg)
+                dLdt = diff(L_estimated) ./ diff(times_reg)
+                l_ += sum(norm.(dLdt).^reg.power)
             else
                 throw("Method no implemented.")
             end
