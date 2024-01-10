@@ -1,24 +1,31 @@
 export SphereParameters, AbstractParameters
 export SphereData, AbstractData
 export Results, AbstractResult
+export Regularization, AbstractRegularization
 
 abstract type AbstractParameters end
+abstract type AbstractData end
+abstract type AbstractRegularization end
+abstract type AbstractResult end
 
-@kwdef struct SphereParameters{F <: AbstractFloat, I <: Int} <: AbstractParameters
+"""
+Training parameters
+"""
+@kwdef struct SphereParameters{F <: AbstractFloat, I <: Int, R <: AbstractRegularization} <: AbstractParameters
     tmin::F
     tmax::F
     u0::Union{Vector{F}, Nothing}
     ωmax::F
-    reg::Union{Nothing,Array{Tuple{Int64, Float64, Float64}}} # order, power, λ
+    reg::Union{Nothing, Array{R}}
     niter_ADAM::I
     niter_LBFGS::I
-    reg_differentiation::Union{Nothing, String}
     reltol::F
     abstol::F
 end
 
-abstract type AbstractData end
-
+"""
+Spherical data information. 
+"""
 @kwdef struct SphereData{F <: AbstractFloat} <: AbstractData
     times::Vector{F}
     directions::Matrix{F}
@@ -26,12 +33,23 @@ abstract type AbstractData end
     L::Union{Function, Nothing}
 end
 
-abstract type AbstractResult end
-
+"""
+Final results
+"""
 @kwdef struct Results{F <: AbstractFloat} <: AbstractResult
     θ_trained::ComponentVector
     U::Lux.Chain
     st::NamedTuple
     fit_times::Vector{F}
     fit_directions::Matrix{F}
+end
+
+"""
+Regularization information
+"""
+@kwdef struct Regularization{F <: AbstractFloat, I <: Int} <: AbstractRegularization
+    order::I        # Order of derivative
+    power::F        # Power of the Euclidean norm 
+    λ::F            # Regularization hyperparameter
+    diff_mode::Union{Nothing, String}       # AD differentiation mode used in regulatization
 end

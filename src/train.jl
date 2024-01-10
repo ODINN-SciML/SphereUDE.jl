@@ -1,4 +1,4 @@
-export train_sphere
+export train
 
 function get_NN(params, rng, θ_trained)
     # Define neural network 
@@ -60,49 +60,52 @@ function train(data::AbstractData,
         # Regularization
         l_reg = 0.0
         if !isnothing(params.reg)
-            for (order, power, λ) in params.reg    
-                l_reg += λ * regularization(θ; order=order, power=power)      
+            # for (order, power, λ) in params.reg    
+            for reg in params.reg    
+                # l_reg += reg.λ * regularization(θ; order=reg.order, power=reg.power)      
+                l_reg += regularization(θ, reg)      
             end 
         end
         return l_emp + l_reg
     end
 
-    function regularization(θ; order, power, timesteps=100)
+    function regularization(θ, reg::AbstractRegularization; timesteps=100)
+        # Create (uniform) spacing time
         Δt = (params.tmax - params.tmin) / timesteps
         times_reg = collect(params.tmin:Δt:params.tmax)
         # LinRange does not propagate thought the backprop step!
         # times_reg = collect(LinRange(params.tmin, params.tmax, timesteps))
         l_ = 0.0
-        if order==0
+        if reg.order==0
             for t in times_reg
-                l_ += norm(U([t], θ, st)[1])^power
+                l_ += norm(U([t], θ, st)[1])^reg.power
             end
-        elseif order==1
-            if params.reg_differentiation=="AD"
+        elseif reg.order==1
+            if reg.diff_mode=="AD"
                 # Compute gradient using automatic differentiaion in the NN
                 # This currently doesn't run... too slow.
                 for t in times_reg
+                    # Try ReverseDiff
                     grad = Zygote.jacobian(first ∘ U, [t], θ, st)[1]
-                    l_ += norm(grad)^power
+                    l_ += norm(grad)^reg.power
                 end
-            elseif params.reg_differentiation=="Finite differences"
+            elseif reg.diff_mode=="Finite Differences"
                 # Compute finite differences
-                # L₀ = U([times_reg[begin]], θ, st)[1]
+                # Do this with alocating memory!!! 
                 for i in 2:timesteps
                     t₀, t₁ = times_reg[(i-1):i]
                     L₀ = (first ∘ U)([t₀], θ, st)
                     L₁ = (first ∘ U)([t₁], θ, st)
                     grad = (L₁ .- L₀) / (t₁-t₀)
-                    l_ += norm(grad)^power
-                    # L₀ = L₁
+                    l_ += norm(grad)^reg.power
                 end
             else
                 throw("Method no implemented.")
             end
         else
-            throw("Method no implemented")
+            throw("Method no implemented.")
         end
-        return l_
+        return reg.λ * l_
     end
 
     losses = Float64[]

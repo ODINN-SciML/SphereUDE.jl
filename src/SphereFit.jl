@@ -5,7 +5,7 @@ module SphereFit
 using Base: @kwdef
 # utils 
 # training 
-using LinearAlgebra, Statistics
+using LinearAlgebra, Statistics, Distributions
 using Lux, Zygote
 using OrdinaryDiffEq
 using SciMLSensitivity
@@ -15,12 +15,6 @@ using PyPlot, PyCall
 
 # Debugging
 using Infiltrator
-
-# Do I need to repeat these here if I have them in their respective import files?
-export SphereParameters, SphereData, cart2sph
-export train
-export Results
-export plot_sphere
 
 include("utils.jl")
 include("types.jl")
