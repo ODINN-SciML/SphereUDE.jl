@@ -11,12 +11,12 @@ abstract type AbstractResult end
 """
 Training parameters
 """
-@kwdef struct SphereParameters{F <: AbstractFloat, I <: Int, R <: AbstractRegularization} <: AbstractParameters
+@kwdef struct SphereParameters{F <: AbstractFloat, I <: Int} <: AbstractParameters
     tmin::F
     tmax::F
     u0::Union{Vector{F}, Nothing}
     ωmax::F
-    reg::Union{Nothing, Array{R}}
+    reg::Union{Nothing, Array}
     niter_ADAM::I
     niter_LBFGS::I
     reltol::F

@@ -38,7 +38,7 @@ function train(data::AbstractData,
 
     prob_nn = ODEProblem(ude_rotation!, params.u0, [params.tmin, params.tmax], θ)
 
-    function predict(θ; u0=params.u0, T=data.times) 
+    function predict(θ::ComponentVector; u0=params.u0, T=data.times) 
         _prob = remake(prob_nn, u0=u0, 
                        tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
                        p = θ)
@@ -47,7 +47,7 @@ function train(data::AbstractData,
                     sensealg=QuadratureAdjoint(autojacvec=ReverseDiffVJP(true))))
     end
 
-    function loss(θ)
+    function loss(θ::ComponentVector)
         u_ = predict(θ)
         # Empirical error
         # l_emp = mean(abs2, u_ .- data.directions)
@@ -69,7 +69,7 @@ function train(data::AbstractData,
         return l_emp + l_reg
     end
 
-    function regularization(θ, reg::AbstractRegularization; timesteps=100)
+    function regularization(θ::ComponentVector, reg::AbstractRegularization; timesteps=100)
         # Create (uniform) spacing time
         Δt = (params.tmax - params.tmin) / timesteps
         times_reg = collect(params.tmin:Δt:params.tmax)

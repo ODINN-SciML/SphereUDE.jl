@@ -22,7 +22,7 @@ end
 """
 Convert cartesian coordinates to spherical
 """
-function cart2sph(X::AbstractArray{<:Number}; radians=true)
+function cart2sph(X::AbstractArray{<:Number}; radians::Bool=true)
     @assert size(X)[1] == 3 "Input array must have three rows."
     Y = mapslices(x -> [angle(x[1] + x[2]*im), asin(x[3])] , X, dims=1)
     if !radians
