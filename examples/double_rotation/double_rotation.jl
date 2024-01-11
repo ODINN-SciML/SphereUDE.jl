@@ -6,7 +6,7 @@ using OrdinaryDiffEq
 using SciMLSensitivity
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
 
-using SphereFit
+using SphereUDE
 
 ##############################################################
 ###############  Simulation of Simple Example ################

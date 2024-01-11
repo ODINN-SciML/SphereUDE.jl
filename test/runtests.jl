@@ -1,4 +1,4 @@
-using SphereFit
+using SphereUDE
 using Test
 
 include("constructors.jl")

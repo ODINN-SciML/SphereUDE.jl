@@ -1,5 +1,5 @@
 __precompile__()
-module SphereFit
+module SphereUDE
 
 # types
 using Base: @kwdef
