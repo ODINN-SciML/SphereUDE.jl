@@ -114,7 +114,7 @@ losses = Float64[]
 
 callback = function (p, l)
     push!(losses, l)
-    if length(losses) % 10 == 0
+    if length(losses) % 100 == 0
         println("Current loss after $(length(losses)) iterations: $(losses[end])")
     end
     return false
