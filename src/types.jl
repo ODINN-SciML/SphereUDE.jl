@@ -21,6 +21,8 @@ Training parameters
     niter_LBFGS::I
     reltol::F
     abstol::F
+    solver::OrdinaryDiffEq.OrdinaryDiffEqAlgorithm = Tsit5()
+    sensealg::SciMLBase.AbstractAdjointSensitivityAlgorithm = QuadratureAdjoint(autojacvec=ReverseDiffVJP(true))
 end
 
 """

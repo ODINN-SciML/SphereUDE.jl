@@ -21,8 +21,9 @@ function plot_sphere(# ax::PyCall.PyObject,
                     #  X_points::Matrix{Float64}, 
                     #  X_path::Matrix{Float64}, 
                      central_latitude::Float64, 
-                     central_longitude::Float64, 
-                     saveas::Union{String, Nothing})
+                     central_longitude::Float64;
+                     saveas::Union{String, Nothing},
+                     title::String)
 
     # cmap = mpl_colormap.get_cmap("viridis")
 
@@ -48,7 +49,7 @@ function plot_sphere(# ax::PyCall.PyObject,
                   linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
                   transform = ccrs.Geodetic())
     end
-
+    plt.title(title)
     if !isnothing(saveas)
         plt.savefig(saveas, format="pdf")
     end
@@ -62,7 +63,8 @@ Plot fitted rotation
 """
 function plot_L(data::AbstractData, 
                 results::AbstractResult;
-                saveas::Union{String, Nothing})
+                saveas::Union{String, Nothing},
+                title::String)
 
     fig, ax = plt.subplots(figsize=(10,5))
 
@@ -83,6 +85,7 @@ function plot_L(data::AbstractData,
     plt.xlabel("Time")
     plt.ylabel("Angular Velocity")
     plt.legend()
+    plt.title(title)
 
     if !isnothing(saveas)
         plt.savefig(saveas, format="pdf")

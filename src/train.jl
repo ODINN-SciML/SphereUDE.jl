@@ -12,10 +12,10 @@ function get_NN(params, rng, θ_trained)
     return U, θ, st
 end
 
-function train(data::AbstractData,
-               params::AbstractParameters,
+function train(data::AD,
+               params::AP,
                rng, 
-               θ_trained=[])
+               θ_trained=[]) where{AD <: AbstractData, AP <: AbstractParameters}
 
     U, θ, st = get_NN(params, rng, θ_trained)
 
@@ -26,7 +26,6 @@ function train(data::AbstractData,
         # Angular momentum given by network prediction
         L = U([t], p, st)[1]
         du .= cross(L, u)
-        nothing
     end
 
     prob_nn = ODEProblem(ude_rotation!, params.u0, [params.tmin, params.tmax], θ)
@@ -35,9 +34,9 @@ function train(data::AbstractData,
         _prob = remake(prob_nn, u0=u0, 
                        tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
                        p = θ)
-        Array(solve(_prob, Tsit5(), saveat=T,
+        Array(solve(_prob, params.solver, saveat=T,
                     abstol=params.abstol, reltol=params.reltol,
-                    sensealg=QuadratureAdjoint(autojacvec=ReverseDiffVJP(true))))
+                    sensealg=params.sensealg))
     end
 
     function loss(θ::ComponentVector)
@@ -46,9 +45,9 @@ function train(data::AbstractData,
         # l_emp = mean(abs2, u_ .- data.directions)
         if isnothing(data.kappas)
             # The 3 is needed since the mean is computen on a 3xN matrix
-            l_emp = 1 - 3 * mean(u_ .* data.directions)
+            l_emp = 1 - 3.0 * mean(u_ .* data.directions)
         else
-            l_emp = norm(data.kappas)^2 - 3 * mean(data.kappas .* u_ .* data.directions)
+            l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
         end
         # Regularization
         l_reg = 0.0
@@ -88,10 +87,10 @@ function train(data::AbstractData,
                 dLdt = diff(L_estimated) ./ diff(times_reg)
                 l_ += sum(norm.(dLdt).^reg.power)
             else
-                throw("Method no implemented.")
+                throw("Method not implemented.")
             end
         else
-            throw("Method no implemented.")
+            throw("Method not implemented.")
         end
         return reg.λ * l_
     end
@@ -99,7 +98,7 @@ function train(data::AbstractData,
     losses = Float64[]
     callback = function (p, l)
         push!(losses, l)
-        if length(losses) % 20 == 0
+        if length(losses) % 200 == 0
             println("Current loss after $(length(losses)) iterations: $(losses[end])")
         end
         return false
