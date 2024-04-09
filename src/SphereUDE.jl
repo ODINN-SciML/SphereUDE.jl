@@ -6,6 +6,7 @@ using Base: @kwdef
 # utils 
 # training 
 using LinearAlgebra, Statistics, Distributions
+using FastGaussQuadrature
 using Lux, Zygote
 using OrdinaryDiffEq
 using SciMLSensitivity

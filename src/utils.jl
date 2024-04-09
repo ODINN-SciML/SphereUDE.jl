@@ -1,6 +1,7 @@
 export sigmoid_cap, relu_cap, step_cap
 export cart2sph
 export AbstractNoise, FisherNoise
+export quadrature
 
 # Normalization of the NN. Ideally we want to do this with L2 norm .
 
@@ -62,4 +63,19 @@ function Base.:(+)(X::Array{F, 2}, ϵ::N) where {F <: AbstractFloat, N <: Abstra
         end
         return Y
     end
+end
+
+"""
+    quadrature_integrate
+
+Numerical integral using Gaussian quadrature
+"""
+function quadrature(f::Function, t₀, t₁, n_nodes::Int)
+    ignore() do
+        # Ignore AD here since FastGaussQuadrature is using mutating arrays
+        nodes, weigths = gausslegendre(n_nodes)
+    end
+    nodes = (t₀+t₁)/2  .+ nodes * (t₁-t₀)/2
+    weigths = (t₁-t₀) / 2 * weigths
+    return dot(weigths, f.(nodes))
 end

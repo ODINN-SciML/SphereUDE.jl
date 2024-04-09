@@ -61,17 +61,20 @@ function train(data::AD,
         return l_emp + l_reg
     end
 
-    function regularization(θ::ComponentVector, reg::AbstractRegularization; timesteps=100)
+    function regularization(θ::ComponentVector, reg::AbstractRegularization; n_nodes=100)
+        
         # Create (uniform) spacing time
-        Δt = (params.tmax - params.tmin) / timesteps
-        times_reg = collect(params.tmin:Δt:params.tmax)
+        # Δt = (params.tmax - params.tmin) / n_nodes
+        # times_reg = collect(params.tmin:Δt:params.tmax)
+
         # LinRange does not propagate thought the backprop step!
-        # times_reg = collect(LinRange(params.tmin, params.tmax, timesteps))
+        # times_reg = collect(LinRange(params.tmin, params.tmax, n_nodes))
         l_ = 0.0
         if reg.order==0
-            for t in times_reg
-                l_ += norm(U([t], θ, st)[1])^reg.power
-            end
+            l_ += quadrature(t -> norm(U([t], θ, st)[1])^reg.power, params.tmin, params.tmax, n_nodes)
+            # for t in times_reg
+            #     l_ += norm(U([t], θ, st)[1])^reg.power
+            # end
         elseif reg.order==1
             if reg.diff_mode=="AD"
                 # Compute gradient using automatic differentiaion in the NN
