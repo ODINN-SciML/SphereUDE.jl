@@ -1,7 +1,7 @@
 export sigmoid_cap, relu_cap, step_cap
-export cart2sph
+export cart2sph, sph2cart
 export AbstractNoise, FisherNoise
-export quadrature
+export quadrature, central_fdm
 
 # Normalization of the NN. Ideally we want to do this with L2 norm .
 
@@ -34,6 +34,23 @@ function cart2sph(X::AbstractArray{<:Number}; radians::Bool=true)
     if !radians
         Y *= 180. / π
     end
+    return Y
+end
+
+
+"""
+    sph2cart(X::AbstractArray{<:Number}; radians::Bool=true)
+
+Convert spherical coordinates to cartesian
+"""
+function sph2cart(X::AbstractArray{<:Number}; radians::Bool=true)
+    @assert size(X)[1] == 2 "Input array must have two rows corresponding to Latitude and Longitude."
+    if !radians
+        X *= π / 180.
+    end
+    Y = mapslices(x -> [cos(x[1])*cos(x[2]), 
+                        cos(x[1])*sin(x[2]),
+                        sin(x[1])] , X, dims=1)
     return Y
 end
 
@@ -78,4 +95,16 @@ function quadrature(f::Function, t₀, t₁, n_nodes::Int)
     nodes = (t₀+t₁)/2  .+ nodes * (t₁-t₀)/2
     weigths = (t₁-t₀) / 2 * weigths
     return dot(weigths, f.(nodes))
+end
+
+"""
+    central_fdm(f::Function, x::Float64; ϵ=0.01)
+
+Simple central differences implementation. 
+
+FiniteDifferences.jl does not work with AD so I implemented this manually. 
+Still remains to test this with FiniteDiff.jl
+"""
+function central_fdm(f::Function, x::Float64; ϵ=0.01)
+    return (f(x+ϵ)-f(x-ϵ)) / (2ϵ) 
 end

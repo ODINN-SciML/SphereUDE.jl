@@ -1,11 +1,15 @@
 export train
 
+# For L1 regularization relu_cap works better, but for L2 I think is better to include sigmoid
 function get_NN(params, rng, θ_trained)
     # Define neural network 
     U = Lux.Chain(
         Lux.Dense(1,  5,  relu_cap), # explore discontinuity function for activation
         Lux.Dense(5,  10, relu_cap), 
-        Lux.Dense(10, 5,  relu_cap), 
+        Lux.Dense(10, 5,  relu_cap),
+        # Lux.Dense(1,  5,  sigmoid), 
+        # Lux.Dense(5,  10, sigmoid), 
+        # Lux.Dense(10, 5,  sigmoid), 
         Lux.Dense(5,  3,  x->sigmoid_cap(x; ω₀=params.ωmax))
     )
     θ, st = Lux.setup(rng, U)
@@ -18,9 +22,6 @@ function train(data::AD,
                θ_trained=[]) where{AD <: AbstractData, AP <: AbstractParameters}
 
     U, θ, st = get_NN(params, rng, θ_trained)
-
-    # one option is to restrict where the NN is evaluated to discrete t to 
-    # generate piece-wise dynamics.
 
     function ude_rotation!(du, u, p, t)
         # Angular momentum given by network prediction
@@ -66,17 +67,14 @@ function train(data::AD,
         # Create (uniform) spacing time
         # Δt = (params.tmax - params.tmin) / n_nodes
         # times_reg = collect(params.tmin:Δt:params.tmax)
-
         # LinRange does not propagate thought the backprop step!
         # times_reg = collect(LinRange(params.tmin, params.tmax, n_nodes))
         l_ = 0.0
         if reg.order==0
             l_ += quadrature(t -> norm(U([t], θ, st)[1])^reg.power, params.tmin, params.tmax, n_nodes)
-            # for t in times_reg
-            #     l_ += norm(U([t], θ, st)[1])^reg.power
-            # end
         elseif reg.order==1
             if reg.diff_mode=="AD"
+                throw("Method not working well.")
                 # Compute gradient using automatic differentiaion in the NN
                 # This currently doesn't run... too slow.
                 for t in times_reg
@@ -85,10 +83,10 @@ function train(data::AD,
                     l_ += norm(grad)^reg.power
                 end
             elseif reg.diff_mode=="Finite Differences"
-                # Compute finite differences
-                L_estimated = map(t -> (first ∘ U)([t], θ, st), times_reg)
-                dLdt = diff(L_estimated) ./ diff(times_reg)
-                l_ += sum(norm.(dLdt).^reg.power)
+                # Using FiniteDifferences break precompilation becuase of name collission
+                # l_ += quadrature(t -> norm(FiniteDifferences.jacobian(FiniteDifferences.central_fdm(2,1), τ -> (first ∘ U)([τ], θ, st), t)[1])^reg.power, params.tmin, params.tmax, n_nodes)
+                ϵ = 0.1 * (params.tmax - params.tmin) / n_nodes
+                l_ += quadrature(t -> norm(central_fdm(τ -> (first ∘ U)([τ], θ, st), t, ϵ=ϵ))^reg.power, params.tmin, params.tmax, n_nodes)
             else
                 throw("Method not implemented.")
             end
@@ -122,7 +120,7 @@ function train(data::AD,
     θ_trained = res2.u
 
     # Final Fit 
-    fit_times = collect(params.tmin:0.1:params.tmax)
+    fit_times = collect(range(params.tmin,params.tmax, length=200))
     fit_directions = predict(θ_trained, T=fit_times)
 
     return Results(θ_trained=θ_trained, U=U, st=st,

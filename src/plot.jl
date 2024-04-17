@@ -30,7 +30,7 @@ function plot_sphere(# ax::PyCall.PyObject,
     plt.figure(figsize=(10,10))
     ax = plt.axes(projection=ccrs.Orthographic(central_latitude=central_latitude, central_longitude=central_longitude))
 
-    ax.coastlines()
+    # ax.coastlines()
     ax.gridlines()
     ax.set_global()
 
@@ -39,7 +39,7 @@ function plot_sphere(# ax::PyCall.PyObject,
     X_fit_path = cart2sph(results.fit_directions, radians=false)
 
     sns.scatterplot(ax=ax, x = X_true_points[1,:], y=X_true_points[2, :], 
-                    hue = data.times, s=50,
+                    hue = data.times, s=150,
                     palette="viridis",
                     transform = ccrs.PlateCarree());
     
