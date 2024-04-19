@@ -29,6 +29,12 @@ function train(data::AD,
         du .= cross(L, u)
     end
 
+    # function ude_rotation!(du::Array{Complex{Float64}}, u::Array{Complex{Float64}}, p, t)
+    #     # Angular momentum given by network prediction
+    #     L = U([t], p, st)[1]
+    #     du .= cross(L, u)
+    # end
+
     prob_nn = ODEProblem(ude_rotation!, params.u0, [params.tmin, params.tmax], θ)
 
     function predict(θ::ComponentVector; u0=params.u0, T=data.times) 
@@ -82,11 +88,13 @@ function train(data::AD,
                     grad = Zygote.jacobian(first ∘ U, [t], θ, st)[1]
                     l_ += norm(grad)^reg.power
                 end
-            elseif reg.diff_mode=="Finite Differences"
-                # Using FiniteDifferences break precompilation becuase of name collission
-                # l_ += quadrature(t -> norm(FiniteDifferences.jacobian(FiniteDifferences.central_fdm(2,1), τ -> (first ∘ U)([τ], θ, st), t)[1])^reg.power, params.tmin, params.tmax, n_nodes)
+            elseif reg.diff_mode=="FD"
+                # Finite differences 
                 ϵ = 0.1 * (params.tmax - params.tmin) / n_nodes
                 l_ += quadrature(t -> norm(central_fdm(τ -> (first ∘ U)([τ], θ, st), t, ϵ=ϵ))^reg.power, params.tmin, params.tmax, n_nodes)
+            elseif reg.diff_mode=="CS"
+                # Complex step differentiation
+                l_ += quadrature(t -> norm(complex_step_differentiation(τ -> (first ∘ U)([τ], θ, st), t))^reg.power, params.tmin, params.tmax, n_nodes) 
             else
                 throw("Method not implemented.")
             end

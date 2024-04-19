@@ -1,7 +1,7 @@
 export sigmoid_cap, relu_cap, step_cap
 export cart2sph, sph2cart
 export AbstractNoise, FisherNoise
-export quadrature, central_fdm
+export quadrature, central_fdm, complex_step_differentiation
 
 # Normalization of the NN. Ideally we want to do this with L2 norm .
 
@@ -107,4 +107,13 @@ Still remains to test this with FiniteDiff.jl
 """
 function central_fdm(f::Function, x::Float64; ϵ=0.01)
     return (f(x+ϵ)-f(x-ϵ)) / (2ϵ) 
+end
+
+"""
+    complex_step_differentiation(f::Function, x::Float64; ϵ=1e-10)
+
+Manual implementation of comple-step differentiation
+"""
+function complex_step_differentiation(f::Function, x::Float64; ϵ=1e-10)
+    return imag(f(x + ϵ * im)) / ϵ
 end
