@@ -64,9 +64,9 @@ X_true = X_noiseless + FisherNoise(kappa=200.)
 
 data   = SphereData(times=times_samples, directions=X_true, kappas=nothing, L=L_true)
 
-# regs = [Regularization(order=1, power=1.0, λ=0.001, diff_mode="Finite Differences"), 
-        # Regularization(order=0, power=2.0, λ=0.1, diff_mode="Finite Differences")]
-regs = [Regularization(order=0, power=2.0, λ=0.1, diff_mode="AD")]
+regs = [Regularization(order=1, power=1.0, λ=0.001, diff_mode="CS"), 
+        Regularization(order=0, power=2.0, λ=0.1, diff_mode="AD")]
+# regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode="CS")]
 
 params = SphereParameters(tmin=tspan[1], tmax=tspan[2], 
                           reg=regs, 

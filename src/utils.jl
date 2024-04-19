@@ -2,6 +2,7 @@ export sigmoid_cap, relu_cap, step_cap
 export cart2sph, sph2cart
 export AbstractNoise, FisherNoise
 export quadrature, central_fdm, complex_step_differentiation
+export raise_warnings
 
 # Normalization of the NN. Ideally we want to do this with L2 norm .
 
@@ -14,6 +15,10 @@ function sigmoid_cap(x; ω₀=1.0)
     return min_value + (max_value - min_value) / ( 1.0 + exp(-x) )
 end
 
+function sigmoid(x::Complex)
+    return 1 / ( 1.0 + exp(-x) )
+end
+
 """
     relu_cap(x; ω₀=1.0)
 """
@@ -21,6 +26,12 @@ function relu_cap(x; ω₀=1.0)
     min_value = - ω₀
     max_value = + ω₀
     return min_value + (max_value - min_value) * max(0.0, min(x, 1.0))
+end
+
+function relu_cap(x::Complex; ω₀=1.0)
+    min_value = - ω₀
+    max_value = + ω₀
+    return min_value + (max_value - min_value) * max(0.0, min(real(x), 1.0)) + (max_value - min_value) * max(0.0, min(imag(x), 1.0)) * im
 end
 
 """
@@ -92,7 +103,7 @@ function quadrature(f::Function, t₀, t₁, n_nodes::Int)
         # Ignore AD here since FastGaussQuadrature is using mutating arrays
         nodes, weigths = gausslegendre(n_nodes)
     end
-    nodes = (t₀+t₁)/2  .+ nodes * (t₁-t₀)/2
+    nodes = (t₀+t₁)/2 .+ nodes * (t₁-t₀)/2
     weigths = (t₁-t₀) / 2 * weigths
     return dot(weigths, f.(nodes))
 end
@@ -116,4 +127,23 @@ Manual implementation of comple-step differentiation
 """
 function complex_step_differentiation(f::Function, x::Float64; ϵ=1e-10)
     return imag(f(x + ϵ * im)) / ϵ
+end
+
+"""
+    raise_warnings(data::AD, params::AP)
+
+Raise warnings.
+"""
+function raise_warnings(data::SphereData, params::SphereParameters)
+    if length(unique(data.times)) < length(data.times)
+        @warn "[SphereUDE] Timeseries includes duplicated times. \n This can produce unexpected errors." 
+    end
+    if !isnothing(params.reg)
+        for reg in params.reg  
+            if reg.diff_mode=="CS"
+                @warn "[SphereUDE] Complex-step differentiation inside the loss function \n This just work for cases where the activation function of the neural network admits complex numbers \n Change predefined activation functions to be complex numbers."
+            end
+        end
+    end
+    nothing
 end

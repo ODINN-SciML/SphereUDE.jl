@@ -21,6 +21,9 @@ function train(data::AD,
                rng, 
                θ_trained=[]) where{AD <: AbstractData, AP <: AbstractParameters}
 
+    # Raise warnings 
+    raise_warnings(data::AD, params::AP)
+
     U, θ, st = get_NN(params, rng, θ_trained)
 
     function ude_rotation!(du, u, p, t)
@@ -28,12 +31,6 @@ function train(data::AD,
         L = U([t], p, st)[1]
         du .= cross(L, u)
     end
-
-    # function ude_rotation!(du::Array{Complex{Float64}}, u::Array{Complex{Float64}}, p, t)
-    #     # Angular momentum given by network prediction
-    #     L = U([t], p, st)[1]
-    #     du .= cross(L, u)
-    # end
 
     prob_nn = ODEProblem(ude_rotation!, params.u0, [params.tmin, params.tmax], θ)
 
@@ -107,7 +104,7 @@ function train(data::AD,
     losses = Float64[]
     callback = function (p, l)
         push!(losses, l)
-        if length(losses) % 200 == 0
+        if length(losses) % 100 == 0
             println("Current loss after $(length(losses)) iterations: $(losses[end])")
         end
         return false

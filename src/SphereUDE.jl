@@ -14,11 +14,14 @@ using Optimization, OptimizationOptimisers, OptimizationOptimJL
 using ComponentArrays: ComponentVector
 using PyPlot, PyCall
 
+# Testing double-differentiation
+# using BatchedRoutines
+
 # Debugging
 using Infiltrator
 
-include("utils.jl")
 include("types.jl")
+include("utils.jl")
 include("train.jl")
 include("plot.jl")
 
