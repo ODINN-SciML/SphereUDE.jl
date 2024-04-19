@@ -19,12 +19,20 @@ end
 function train(data::AD,
                params::AP,
                rng, 
-               θ_trained=[]) where{AD <: AbstractData, AP <: AbstractParameters}
+               θ_trained=[]; 
+               train_initial_condition::Bool=false) where {AD <: AbstractData, AP <: AbstractParameters}
 
     # Raise warnings 
     raise_warnings(data::AD, params::AP)
 
     U, θ, st = get_NN(params, rng, θ_trained)
+
+    # Set component vector for Optimization
+    if train_initial_condition
+        β = ComponentVector{Float64}(θ=θ, u0=params.u0)
+    else
+        β = ComponentVector{Float64}(θ=θ)
+    end
 
     function ude_rotation!(du, u, p, t)
         # Angular momentum given by network prediction
@@ -32,19 +40,25 @@ function train(data::AD,
         du .= cross(L, u)
     end
 
-    prob_nn = ODEProblem(ude_rotation!, params.u0, [params.tmin, params.tmax], θ)
+    prob_nn = ODEProblem(ude_rotation!, params.u0, [params.tmin, params.tmax], β.θ)
 
-    function predict(θ::ComponentVector; u0=params.u0, T=data.times) 
-        _prob = remake(prob_nn, u0=u0, 
-                       tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
-                       p = θ)
+    function predict(β::ComponentVector; T=data.times) 
+        if train_initial_condition
+            _prob = remake(prob_nn, u0=β.u0 / norm(β.u0), 
+                           tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
+                           p = β.θ)
+        else
+            _prob = remake(prob_nn, u0=params.u0, 
+                          tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
+                          p = β.θ)
+        end
         Array(solve(_prob, params.solver, saveat=T,
                     abstol=params.abstol, reltol=params.reltol,
                     sensealg=params.sensealg))
     end
 
-    function loss(θ::ComponentVector)
-        u_ = predict(θ)
+    function loss(β::ComponentVector)
+        u_ = predict(β)
         # Empirical error
         # l_emp = mean(abs2, u_ .- data.directions)
         if isnothing(data.kappas)
@@ -58,8 +72,7 @@ function train(data::AD,
         if !isnothing(params.reg)
             # for (order, power, λ) in params.reg    
             for reg in params.reg    
-                # l_reg += reg.λ * regularization(θ; order=reg.order, power=reg.power)      
-                l_reg += regularization(θ, reg)      
+                l_reg += regularization(β.θ, reg)      
             end 
         end
         return l_emp + l_reg
@@ -67,11 +80,6 @@ function train(data::AD,
 
     function regularization(θ::ComponentVector, reg::AbstractRegularization; n_nodes=100)
         
-        # Create (uniform) spacing time
-        # Δt = (params.tmax - params.tmin) / n_nodes
-        # times_reg = collect(params.tmin:Δt:params.tmax)
-        # LinRange does not propagate thought the backprop step!
-        # times_reg = collect(LinRange(params.tmin, params.tmax, n_nodes))
         l_ = 0.0
         if reg.order==0
             l_ += quadrature(t -> norm(U([t], θ, st)[1])^reg.power, params.tmin, params.tmax, n_nodes)
@@ -111,8 +119,8 @@ function train(data::AD,
     end
 
     adtype = Optimization.AutoZygote()
-    optf = Optimization.OptimizationFunction((x, θ) -> loss(x), adtype)
-    optprob = Optimization.OptimizationProblem(optf, ComponentVector{Float64}(θ))
+    optf = Optimization.OptimizationFunction((x, β) -> loss(x), adtype)
+    optprob = Optimization.OptimizationProblem(optf, β)
 
     res1 = Optimization.solve(optprob, ADAM(0.002), callback=callback, maxiters=params.niter_ADAM)
     println("Training loss after $(length(losses)) iterations: $(losses[end])")
@@ -122,12 +130,20 @@ function train(data::AD,
     println("Final training loss after $(length(losses)) iterations: $(losses[end])")
 
     # Optimized NN parameters
-    θ_trained = res2.u
+    β_trained = res2.u
+    θ_trained = β_trained.θ
+
+    # Optimized initial condition
+    if train_initial_condition
+        u0_trained = Array(β_trained.u0) # β.u0 is a view type
+    else
+        u0_trained = params.u0
+    end 
 
     # Final Fit 
     fit_times = collect(range(params.tmin,params.tmax, length=200))
-    fit_directions = predict(θ_trained, T=fit_times)
+    fit_directions = predict(β_trained, T=fit_times)
 
-    return Results(θ_trained=θ_trained, U=U, st=st,
+    return Results(θ=θ_trained, u0=u0_trained, U=U, st=st,
                    fit_times=fit_times, fit_directions=fit_directions)
 end
