@@ -39,7 +39,8 @@ end
 Final results
 """
 @kwdef struct Results{F <: AbstractFloat} <: AbstractResult
-    θ_trained::ComponentVector
+    θ::ComponentVector
+    u0::Vector{F}
     U::Lux.Chain
     st::NamedTuple
     fit_times::Vector{F}

@@ -30,7 +30,7 @@ function plot_sphere(# ax::PyCall.PyObject,
     plt.figure(figsize=(10,10))
     ax = plt.axes(projection=ccrs.Orthographic(central_latitude=central_latitude, central_longitude=central_longitude))
 
-    ax.coastlines()
+    # ax.coastlines()
     ax.gridlines()
     ax.set_global()
 
@@ -38,14 +38,16 @@ function plot_sphere(# ax::PyCall.PyObject,
     # X_true_path = cart2sph(X_path, radians=false)
     X_fit_path = cart2sph(results.fit_directions, radians=false)
 
-    sns.scatterplot(ax=ax, x = X_true_points[1,:], y=X_true_points[2, :], 
-                    hue = data.times, s=50,
+    # Plots in Python follow the long, lat ordering 
+
+    sns.scatterplot(ax=ax, x = X_true_points[2,:], y=X_true_points[1, :], 
+                    hue = data.times, s=150,
                     palette="viridis",
                     transform = ccrs.PlateCarree());
     
     for i in 1:(length(results.fit_times)-1)
-        plt.plot([X_fit_path[1,i], X_fit_path[1,i+1]], 
-                 [X_fit_path[2,i], X_fit_path[2,i+1]],
+        plt.plot([X_fit_path[2,i], X_fit_path[2,i+1]], 
+                 [X_fit_path[1,i], X_fit_path[1,i+1]],
                   linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
                   transform = ccrs.Geodetic())
     end
@@ -69,7 +71,7 @@ function plot_L(data::AbstractData,
     fig, ax = plt.subplots(figsize=(10,5))
 
     times_smooth = collect(LinRange(results.fit_times[begin], results.fit_times[end], 1000))
-    Ls = reduce(hcat, (t -> results.U([t], results.θ_trained, results.st)[1]).(times_smooth))
+    Ls = reduce(hcat, (t -> results.U([t], results.θ, results.st)[1]).(times_smooth))
 
     angular_velocity = mapslices(x -> norm(x), Ls, dims=1)[1,:]
 
