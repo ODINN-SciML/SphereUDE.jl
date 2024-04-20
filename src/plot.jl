@@ -38,14 +38,16 @@ function plot_sphere(# ax::PyCall.PyObject,
     # X_true_path = cart2sph(X_path, radians=false)
     X_fit_path = cart2sph(results.fit_directions, radians=false)
 
-    sns.scatterplot(ax=ax, x = X_true_points[1,:], y=X_true_points[2, :], 
+    # Plots in Python follow the long, lat ordering 
+
+    sns.scatterplot(ax=ax, x = X_true_points[2,:], y=X_true_points[1, :], 
                     hue = data.times, s=150,
                     palette="viridis",
                     transform = ccrs.PlateCarree());
     
     for i in 1:(length(results.fit_times)-1)
-        plt.plot([X_fit_path[1,i], X_fit_path[1,i+1]], 
-                 [X_fit_path[2,i], X_fit_path[2,i+1]],
+        plt.plot([X_fit_path[2,i], X_fit_path[2,i+1]], 
+                 [X_fit_path[1,i], X_fit_path[1,i+1]],
                   linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
                   transform = ccrs.Geodetic())
     end

@@ -44,7 +44,7 @@ function train(data::AD,
 
     function predict(β::ComponentVector; T=data.times) 
         if train_initial_condition
-            _prob = remake(prob_nn, u0=β.u0 / norm(β.u0), 
+            _prob = remake(prob_nn, u0=β.u0 / norm(β.u0), # We enforced the norm=1 condition again here
                            tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
                            p = β.θ)
         else
@@ -60,12 +60,13 @@ function train(data::AD,
     function loss(β::ComponentVector)
         u_ = predict(β)
         # Empirical error
-        # l_emp = mean(abs2, u_ .- data.directions)
         if isnothing(data.kappas)
+            l_emp = 3.0 * mean(abs2.(u_ .- data.directions))
             # The 3 is needed since the mean is computen on a 3xN matrix
-            l_emp = 1 - 3.0 * mean(u_ .* data.directions)
+            # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
         else
-            l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
+            # l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
+            l_emp = mean(data.kappas .* abs2.(u_ .- data.directions), dims=1)
         end
         # Regularization
         l_reg = 0.0
@@ -112,9 +113,12 @@ function train(data::AD,
     losses = Float64[]
     callback = function (p, l)
         push!(losses, l)
-        if length(losses) % 100 == 0
+        if length(losses) % 10 == 0
             println("Current loss after $(length(losses)) iterations: $(losses[end])")
         end
+        if train_initial_condition
+            p.u0 ./= norm(p.u0)
+        end 
         return false
     end
 

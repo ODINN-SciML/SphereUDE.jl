@@ -1,4 +1,4 @@
-export sigmoid_cap, relu_cap, step_cap
+export sigmoid_cap, sigmoid, relu_cap, step_cap
 export cart2sph, sph2cart
 export AbstractNoise, FisherNoise
 export quadrature, central_fdm, complex_step_differentiation
@@ -41,7 +41,7 @@ Convert cartesian coordinates to spherical
 """
 function cart2sph(X::AbstractArray{<:Number}; radians::Bool=true)
     @assert size(X)[1] == 3 "Input array must have three rows."
-    Y = mapslices(x -> [angle(x[1] + x[2]*im), asin(x[3])] , X, dims=1)
+    Y = mapslices(x -> [asin(x[3]), angle(x[1] + x[2]*im)] , X, dims=1)
     if !radians
         Y *= 180. / π
     end
@@ -61,7 +61,7 @@ function sph2cart(X::AbstractArray{<:Number}; radians::Bool=true)
     end
     Y = mapslices(x -> [cos(x[1])*cos(x[2]), 
                         cos(x[1])*sin(x[2]),
-                        sin(x[1])] , X, dims=1)
+                        sin(x[1])], X, dims=1)
     return Y
 end
 

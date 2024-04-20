@@ -1,5 +1,6 @@
 using SphereUDE
 using Test
+using Lux
 
 include("constructors.jl")
 include("utils.jl")
@@ -11,5 +12,7 @@ include("utils.jl")
 end
 
 @testset "Utils" begin 
-    test_cart2sph()
+    test_coordinate()
+    test_complex_activation()
+    test_integration()
 end
