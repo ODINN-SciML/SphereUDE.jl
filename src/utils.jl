@@ -35,6 +35,10 @@ function sigmoid(z::Complex)
     # end
 end
 
+function sigmoid(x::Complex)
+    return 1 / ( 1.0 + exp(-x) )
+end
+
 """
     relu_cap(x; ω₀=1.0)
 """
@@ -60,6 +64,7 @@ function relu_cap(z::Complex; ω₀=1.0)
     min_value = - ω₀
     max_value = + ω₀
     return min_value + (max_value - min_value) * relu(z - relu(z-1))
+
 end
 
 """
