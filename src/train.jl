@@ -4,16 +4,27 @@ export train
 function get_NN(params, rng, θ_trained)
     # Define neural network 
     U = Lux.Chain(
-        Lux.Dense(1,  5,  relu_cap), # explore discontinuity function for activation
-        Lux.Dense(5,  10, relu_cap), 
-        Lux.Dense(10, 5,  relu_cap),
-        # Lux.Dense(1,  5,  sigmoid), 
-        # Lux.Dense(5,  10, sigmoid), 
-        # Lux.Dense(10, 5,  sigmoid), 
+        Lux.Dense(1,  5,  sigmoid), # explore discontinuity function for activation
+        Lux.Dense(5,  10, sigmoid), 
+        Lux.Dense(10, 5,  sigmoid),
+        # Lux.Dense(1,  5,  relu_cap), 
+        # Lux.Dense(5,  10, relu_cap), 
+        # Lux.Dense(10, 5,  relu_cap), 
         Lux.Dense(5,  3,  x->sigmoid_cap(x; ω₀=params.ωmax))
     )
     θ, st = Lux.setup(rng, U)
     return U, θ, st
+end
+
+"""
+    predict_L(t, NN, θ, st)
+
+Predict value of rotation given by L given by the neural network. 
+
+% To do: replace all the calls in U by predict_L
+"""
+function predict_L(t, NN, θ, st)
+    return NN([t], θ, st)[1]
 end
 
 function train(data::AD,
@@ -37,6 +48,7 @@ function train(data::AD,
     function ude_rotation!(du, u, p, t)
         # Angular momentum given by network prediction
         L = U([t], p, st)[1]
+        # L = predict_L(t, U, p, st)
         du .= cross(L, u)
     end
 
@@ -65,8 +77,8 @@ function train(data::AD,
             # The 3 is needed since the mean is computen on a 3xN matrix
             # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
         else
-            # l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
             l_emp = mean(data.kappas .* abs2.(u_ .- data.directions), dims=1)
+            # l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
         end
         # Regularization
         l_reg = 0.0
@@ -89,6 +101,10 @@ function train(data::AD,
                 throw("Method not working well.")
                 # Compute gradient using automatic differentiaion in the NN
                 # This currently doesn't run... too slow.
+
+                # Test this with the new implementation in Lux.jl:
+                # https://lux.csail.mit.edu/stable/manual/nested_autodiff
+
                 for t in times_reg
                     # Try ReverseDiff
                     grad = Zygote.jacobian(first ∘ U, [t], θ, st)[1]

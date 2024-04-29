@@ -1,22 +1,38 @@
-export sigmoid_cap, sigmoid, relu_cap, step_cap
+export sigmoid, sigmoid_cap
+export relu, relu_cap
 export cart2sph, sph2cart
 export AbstractNoise, FisherNoise
 export quadrature, central_fdm, complex_step_differentiation
 export raise_warnings
 
-# Normalization of the NN. Ideally we want to do this with L2 norm .
 
 """
     sigmoid_cap(x; ω₀=1.0)
+
+Normalization of the neural network last layer
 """
 function sigmoid_cap(x; ω₀=1.0)
     min_value = - ω₀
     max_value = + ω₀
-    return min_value + (max_value - min_value) / ( 1.0 + exp(-x) )
+    return min_value + (max_value - min_value) * sigmoid(x)
 end
 
-function sigmoid(x::Complex)
-    return 1 / ( 1.0 + exp(-x) )
+function sigmoid(x)
+    return 1.0 / (1.0 + exp(-x))
+#     if x > 0
+#         return 1 / ( 1.0 + exp(-x) )
+#     else
+#         return exp(x) / (1.0 + exp(x))
+#     end
+end
+
+function sigmoid(z::Complex)
+    return 1.0 / ( 1.0 + exp(-z) )
+    # if real(z) > 0
+    #     return 1 / ( 1.0 + exp(-z) )
+    # else
+    #     return exp(z) / (1.0 + exp(z))
+    # end
 end
 
 """
@@ -28,10 +44,22 @@ function relu_cap(x; ω₀=1.0)
     return min_value + (max_value - min_value) * max(0.0, min(x, 1.0))
 end
 
-function relu_cap(x::Complex; ω₀=1.0)
+
+"""
+    relu(x::Complex)
+
+Extension of ReLU function to complex numbers based on the complex cardioid introduced in 
+Virtue et al. (2017), "Better than Real: Complex-valued Neural Nets for MRI Fingerprinting".
+This function is equivalent to relu when x is real (and hence angle(x)=0 or angle(x)=π).
+"""
+function relu(z::Complex)
+    return 0.5 * (1 + cos(angle(z))) * z
+end
+
+function relu_cap(z::Complex; ω₀=1.0)
     min_value = - ω₀
     max_value = + ω₀
-    return min_value + (max_value - min_value) * max(0.0, min(real(x), 1.0)) + (max_value - min_value) * max(0.0, min(imag(x), 1.0)) * im
+    return min_value + (max_value - min_value) * relu(z - relu(z-1))
 end
 
 """
