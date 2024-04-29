@@ -17,6 +17,8 @@ Training parameters
     u0::Union{Vector{F}, Nothing}
     ωmax::F
     reg::Union{Nothing, Array}
+    train_initial_condition::Bool
+    multiple_shooting::Bool
     niter_ADAM::I
     niter_LBFGS::I
     reltol::F

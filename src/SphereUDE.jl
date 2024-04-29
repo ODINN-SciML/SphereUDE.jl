@@ -7,11 +7,12 @@ using Base: @kwdef
 # training 
 using LinearAlgebra, Statistics, Distributions
 using FastGaussQuadrature
-using Lux, Zygote
+using Lux, Zygote, DiffEqFlux
+using ChainRules: @ignore_derivatives
 using OrdinaryDiffEq
 using SciMLSensitivity
-using Optimization, OptimizationOptimisers, OptimizationOptimJL
-using ComponentArrays: ComponentVector
+using Optimization, OptimizationOptimisers, OptimizationOptimJL, OptimizationPolyalgorithms
+using ComponentArrays
 using PyPlot, PyCall
 
 # Testing double-differentiation

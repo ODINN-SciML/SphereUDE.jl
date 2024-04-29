@@ -35,9 +35,9 @@ function sigmoid(z::Complex)
     # end
 end
 
-function sigmoid(x::Complex)
-    return 1 / ( 1.0 + exp(-x) )
-end
+# function sigmoid(x::Complex)
+#     return 1 / ( 1.0 + exp(-x) )
+# end
 
 """
     relu_cap(x; ω₀=1.0)
@@ -156,7 +156,7 @@ end
 """
     complex_step_differentiation(f::Function, x::Float64; ϵ=1e-10)
 
-Manual implementation of comple-step differentiation
+Manual implementation of complex-step differentiation
 """
 function complex_step_differentiation(f::Function, x::Float64; ϵ=1e-10)
     return imag(f(x + ϵ * im)) / ϵ
