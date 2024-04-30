@@ -13,6 +13,7 @@ using SciMLSensitivity
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
 using ComponentArrays: ComponentVector
 using PyPlot, PyCall
+using PrettyTables
 
 # Testing double-differentiation
 # using BatchedRoutines

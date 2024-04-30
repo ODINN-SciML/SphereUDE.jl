@@ -166,12 +166,12 @@ function raise_warnings(data::SphereData, params::SphereParameters)
     if length(unique(data.times)) < length(data.times)
         @warn "[SphereUDE] Timeseries includes duplicated times. \n This can produce unexpected errors." 
     end
-    if !isnothing(params.reg)
-        for reg in params.reg  
-            if reg.diff_mode=="CS"
-                @warn "[SphereUDE] Complex-step differentiation inside the loss function \n This just work for cases where the activation function of the neural network admits complex numbers \n Change predefined activation functions to be complex numbers."
-            end
-        end
-    end
+    # if !isnothing(params.reg)
+    #     for reg in params.reg  
+    #         if reg.diff_mode=="CS"
+    #             @warn "[SphereUDE] Complex-step differentiation inside the loss function \n This just work for cases where the activation function of the neural network admits complex numbers \n Change predefined activation functions to be complex numbers."
+    #         end
+    #     end
+    # end
     nothing
 end
