@@ -16,6 +16,8 @@ function test_param_constructor()
                               u0=[0. ,0. ,1.], 
                               ωmax=1.0, 
                               reg=nothing,
+                              train_initial_condition=false,
+                              multiple_shooting=true,
                               niter_ADAM=1000, niter_LBFGS=300, 
                               reltol=1e6, abstol=1e-6)
 
@@ -26,6 +28,8 @@ function test_param_constructor()
                                u0=[0. ,0. ,1.], 
                                ωmax=1.0, 
                                reg=[reg1, reg2],
+                               train_initial_condition=false,
+                               multiple_shooting=true,
                                niter_ADAM=1000, niter_LBFGS=300, 
                                reltol=1e6, abstol=1e-6)
 

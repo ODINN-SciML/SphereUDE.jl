@@ -17,10 +17,12 @@ using Random
 rng = Random.default_rng()
 Random.seed!(rng, 666)
 
+function run()
+
 # Total time simulation
 tspan = [0, 160.0]
 # Number of sample points
-N_samples = 50
+N_samples = 100
 # Times where we sample points
 times_samples = sort(rand(sampler(Uniform(tspan[1], tspan[2])), N_samples))
 
@@ -35,8 +37,8 @@ L0 = ω₀    .* [1.0, 0.0, 0.0]
 L1 = 0.5ω₀ .* [0.0, 1/sqrt(2), 1/sqrt(2)]
 
 # Solver tolerances 
-reltol = 1e-7
-abstol = 1e-7
+reltol = 1e-12
+abstol = 1e-12
 
 function L_true(t::Float64; τ₀=τ₀, p=[L0, L1])
     if t < τ₀
@@ -76,10 +78,10 @@ params = SphereParameters(tmin=tspan[1], tmax=tspan[2],
                           train_initial_condition=false,
                           multiple_shooting=true,
                           u0=[0.0, 0.0, -1.0], ωmax=ω₀, reltol=reltol, abstol=abstol,
-                          niter_ADAM=1000, niter_LBFGS=800)
+                          niter_ADAM=1000, niter_LBFGS=600, 
+                          sensealg=GaussAdjoint(autojacvec=ReverseDiffVJP(true))) 
 
 results = train(data, params, rng, nothing)
-
 
 ##############################################################
 ######################  PyCall Plots #########################
@@ -87,3 +89,6 @@ results = train(data, params, rng, nothing)
 
 plot_sphere(data, results, -20., 150., saveas="examples/double_rotation/plot_sphere.pdf", title="Double rotation")
 plot_L(data, results, saveas="examples/double_rotation/plot_L.pdf", title="Double rotation")
+
+end
+run()
