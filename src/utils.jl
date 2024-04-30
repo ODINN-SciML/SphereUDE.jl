@@ -35,10 +35,6 @@ function sigmoid(z::Complex)
     # end
 end
 
-function sigmoid(x::Complex)
-    return 1 / ( 1.0 + exp(-x) )
-end
-
 """
     relu_cap(x; ω₀=1.0)
 """
@@ -64,7 +60,6 @@ function relu_cap(z::Complex; ω₀=1.0)
     min_value = - ω₀
     max_value = + ω₀
     return min_value + (max_value - min_value) * relu(z - relu(z-1))
-
 end
 
 """
@@ -171,12 +166,12 @@ function raise_warnings(data::SphereData, params::SphereParameters)
     if length(unique(data.times)) < length(data.times)
         @warn "[SphereUDE] Timeseries includes duplicated times. \n This can produce unexpected errors." 
     end
-    if !isnothing(params.reg)
-        for reg in params.reg  
-            if reg.diff_mode=="CS"
-                @warn "[SphereUDE] Complex-step differentiation inside the loss function \n This just work for cases where the activation function of the neural network admits complex numbers \n Change predefined activation functions to be complex numbers."
-            end
-        end
-    end
+    # if !isnothing(params.reg)
+    #     for reg in params.reg  
+    #         if reg.diff_mode=="CS"
+    #             @warn "[SphereUDE] Complex-step differentiation inside the loss function \n This just work for cases where the activation function of the neural network admits complex numbers \n Change predefined activation functions to be complex numbers."
+    #         end
+    #     end
+    # end
     nothing
 end
