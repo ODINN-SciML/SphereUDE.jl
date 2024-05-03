@@ -66,19 +66,22 @@ X_true = X_noiseless + FisherNoise(kappa=50.)
 
 data   = SphereData(times=times_samples, directions=X_true, kappas=nothing, L=L_true)
 
-regs = [Regularization(order=1, power=1.0, λ=1.0, diff_mode="CS"), 
-        Regularization(order=0, power=2.0, λ=0.1, diff_mode=nothing)]
+regs = [Regularization(order=0, power=2.0, λ=0.1, diff_mode=nothing)]
+# regs = [Regularization(order=1, power=1.0, λ=1.0, diff_mode="CS"), 
+#         Regularization(order=0, power=2.0, λ=0.1, diff_mode=nothing)]
 # regs = [Regularization(order=0, power=2.0, λ=0.1, diff_mode=nothing)] 
         # Regularization(order=1, power=1.1, λ=0.01, diff_mode="CS")]
 # regs = nothing
 
 params = SphereParameters(tmin=tspan[1], tmax=tspan[2], 
                           reg=regs, 
+                          train_initial_condition=false,
+                          multiple_shooting=true,
                           u0=[0.0, 0.0, -1.0], ωmax=ω₀, reltol=reltol, abstol=abstol,
                           niter_ADAM=1000, niter_LBFGS=600, 
                           sensealg=GaussAdjoint(autojacvec=ReverseDiffVJP(true))) 
 
-results = train(data, params, rng, nothing; train_initial_condition=false)
+results = train(data, params, rng, nothing)
 
 ##############################################################
 ######################  PyCall Plots #########################

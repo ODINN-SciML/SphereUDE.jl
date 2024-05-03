@@ -151,7 +151,7 @@ end
 """
     complex_step_differentiation(f::Function, x::Float64; ϵ=1e-10)
 
-Manual implementation of comple-step differentiation
+Manual implementation of complex-step differentiation
 """
 function complex_step_differentiation(f::Function, x::Float64; ϵ=1e-10)
     return imag(f(x + ϵ * im)) / ϵ
