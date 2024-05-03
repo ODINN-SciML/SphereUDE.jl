@@ -33,8 +33,7 @@ Training function.
 function train(data::AD,
                params::AP,
                rng, 
-               θ_trained=[]; 
-               train_initial_condition::Bool=false) where {AD <: AbstractData, AP <: AbstractParameters}
+               θ_trained=[]) where {AD <: AbstractData, AP <: AbstractParameters}
 
     # Raise warnings 
     raise_warnings(data::AD, params::AP)
@@ -42,7 +41,7 @@ function train(data::AD,
     U, θ, st = get_NN(params, rng, θ_trained)
 
     # Set component vector for Optimization
-    if train_initial_condition
+    if params.train_initial_condition
         β = ComponentVector{Float64}(θ=θ, u0=params.u0)
     else
         β = ComponentVector{Float64}(θ=θ)
@@ -57,8 +56,8 @@ function train(data::AD,
     prob_nn = ODEProblem(ude_rotation!, params.u0, [params.tmin, params.tmax], β.θ)
 
     function predict(β::ComponentVector; T=data.times) 
-        if train_initial_condition
-            _prob = remake(prob_nn, u0=β.u0 / norm(β.u0), # We enforced the norm=1 condition again here
+        if params.train_initial_condition
+            _prob = remake(prob_nn, u0=β.u0 / norm(β.u0), # We enforce the norm=1 condition again here
                            tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
                            p = β.θ)
         else
@@ -108,7 +107,53 @@ function train(data::AD,
         return l_emp + l_reg, loss_dict
     end
 
-    function regularization(θ::ComponentVector, reg::AbstractRegularization; n_nodes=100)
+    # Loss function to be called for multiple shooting
+    function loss_function(data, pred)
+
+        # Empirical error
+        l_emp = 3.0 * mean(abs2.(pred .- data))
+        # The 3 is needed since the mean is computen on a 3xN matrix
+        # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
+   
+        # Regularization
+        l_reg = 0.0
+        if !isnothing(params.reg)
+            # for (order, power, λ) in params.reg    
+            for reg in params.reg    
+                reg₀ = regularization(β.θ, reg)
+                l_reg += reg₀      
+            end 
+        end
+
+        return l_emp + l_reg
+    end
+
+    # Define parameters for Multiple Shooting
+    group_size = 50
+    continuity_term = 100
+
+    ps = ComponentArray(θ)
+    pd, pax = getdata(ps), getaxes(ps)
+
+    function loss_multiple_shooting(β::ComponentVector)
+
+        ps = ComponentArray(β.θ, pax)
+
+        if params.train_initial_condition
+            _prob = remake(prob_nn, u0=β.u0 / norm(β.u0), # We enforce the norm=1 condition again here
+                           tspan=(min(data.times[1], params.tmin), max(data.times[end], params.tmax)), 
+                           p = β.θ)
+        else
+            _prob = remake(prob_nn, u0=params.u0, 
+                          tspan=(min(data.times[1], params.tmin), max(data.times[end], params.tmax)), 
+                          p = β.θ)
+        end
+  
+        return multiple_shoot(β.θ, data.directions, data.times, _prob, loss_function, Tsit5(),
+                                group_size; continuity_term)
+    end
+
+    function regularization(θ::ComponentVector, reg::AG; n_nodes=100) where{AG <: AbstractRegularization}
         
         l_ = 0.0
         if reg.order==0
@@ -143,17 +188,20 @@ function train(data::AD,
         if length(losses) % 50 == 0
             println("Current loss after $(length(losses)) iterations: $(losses[end])")
         end
-        if train_initial_condition
+        if params.train_initial_condition
             p.u0 ./= norm(p.u0)
         end 
         return false
     end
 
+    # Dispatch the right loss function
+    f_loss = params.multiple_shooting ? loss_multiple_shooting : loss
+
     adtype = Optimization.AutoZygote()
-    optf = Optimization.OptimizationFunction((x, β) -> (first ∘ loss)(x), adtype)
+    optf = Optimization.OptimizationFunction((x, β) -> (first ∘ f_loss)(x), adtype)
     optprob = Optimization.OptimizationProblem(optf, β)
 
-    res1 = Optimization.solve(optprob, ADAM(0.002), callback=callback, maxiters=params.niter_ADAM)
+    res1 = Optimization.solve(optprob, ADAM(), callback=callback, maxiters=params.niter_ADAM, verbose=false)
     println("Training loss after $(length(losses)) iterations: $(losses[end])")
 
     if params.niter_LBFGS > 0
@@ -169,14 +217,14 @@ function train(data::AD,
     θ_trained = β_trained.θ
 
     # Optimized initial condition
-    if train_initial_condition
+    if params.train_initial_condition
         u0_trained = Array(β_trained.u0) # β.u0 is a view type
     else
         u0_trained = params.u0
     end 
 
     # Final Fit 
-    fit_times = collect(range(params.tmin,params.tmax, length=200))
+    fit_times = collect(range(params.tmin,params.tmax, length=length(data.times)))
     fit_directions, _ = predict(β_trained, T=fit_times)
 
     # Recover final balance between different terms involved in the loss function to assess hyperparameter selection.
