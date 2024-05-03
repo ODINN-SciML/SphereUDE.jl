@@ -85,8 +85,8 @@ function train(data::AD,
         
         # Empirical error
         if isnothing(data.kappas)
-            l_emp = 3.0 * mean(abs2.(u_ .- data.directions))
             # The 3 is needed since the mean is computen on a 3xN matrix
+            l_emp = 3.0 * mean(abs2.(u_ .- data.directions))
             # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
         else
             l_emp = mean(data.kappas .* abs2.(u_ .- data.directions), dims=1)
@@ -112,13 +112,10 @@ function train(data::AD,
 
         # Empirical error
         l_emp = 3.0 * mean(abs2.(pred .- data))
-        # The 3 is needed since the mean is computen on a 3xN matrix
-        # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
    
         # Regularization
         l_reg = 0.0
         if !isnothing(params.reg)
-            # for (order, power, λ) in params.reg    
             for reg in params.reg    
                 reg₀ = regularization(β.θ, reg)
                 l_reg += reg₀      
@@ -129,11 +126,19 @@ function train(data::AD,
     end
 
     # Define parameters for Multiple Shooting
-    group_size = 50
+    group_size = 10
     continuity_term = 100
 
-    ps = ComponentArray(θ)
-    pd, pax = getdata(ps), getaxes(ps)
+    ps = ComponentArray(θ) # are these necesary?
+    pd, pax = getdata(ps), getaxes(ps) 
+
+    function continuity_loss(u_pred, u_initial)
+        if !isapprox(norm(u_initial), 1.0, atol=1e-6) || !isapprox(norm(u_pred), 1.0, atol=1e-6)
+            @warn "Directions during multiple shooting are not in the sphere. Small deviations from unit norm observed:" 
+            @show norm(u_initial), norm(u_pred)
+        end
+        return sum(abs2, u_pred - u_initial)
+    end
 
     function loss_multiple_shooting(β::ComponentVector)
 
@@ -149,11 +154,11 @@ function train(data::AD,
                           p = β.θ)
         end
   
-        return multiple_shoot(β.θ, data.directions, data.times, _prob, loss_function, Tsit5(),
-                                group_size; continuity_term)
+        return multiple_shoot(β.θ, data.directions, data.times, _prob, loss_function, continuity_loss, params.solver,
+                                group_size; continuity_term, sensealg=params.sensealg)
     end
 
-    function regularization(θ::ComponentVector, reg::AG; n_nodes=100) where{AG <: AbstractRegularization}
+    function regularization(θ::ComponentVector, reg::AG; n_nodes=100) where {AG <: AbstractRegularization}
         
         l_ = 0.0
         if reg.order==0
