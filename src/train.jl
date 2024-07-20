@@ -1,17 +1,29 @@
 export train
 
-# For L1 regularization relu_cap works better, but for L2 I think is better to include sigmoid
 function get_NN(params, rng, θ_trained)
     # Define neural network 
-    U = Lux.Chain(
-        Lux.Dense(1,  5,  sigmoid), # explore discontinuity function for activation
-        Lux.Dense(5,  10, sigmoid), 
-        Lux.Dense(10, 5,  sigmoid),
-        # Lux.Dense(1,  5,  relu_cap), 
-        # Lux.Dense(5,  10, relu_cap), 
-        # Lux.Dense(10, 5,  relu_cap), 
-        Lux.Dense(5,  3,  x->sigmoid_cap(x; ω₀=params.ωmax))
-    )
+    
+    # For L1 regularization relu_cap works better, but for L2 I think is better to include sigmoid
+    if isL1reg(params.reg)
+        @warn "[SphereUDE] Using ReLU activation functions for neural network due to L1 regularization."
+        U = Lux.Chain(
+            Lux.Dense(1,  5,  sigmoid), 
+            Lux.Dense(5,  10, sigmoid), 
+            Lux.Dense(10, 5,  sigmoid), 
+            # Lux.Dense(1,  5,  relu_cap), 
+            # Lux.Dense(5,  10, relu_cap), 
+            # Lux.Dense(10, 5,  relu_cap), 
+            Lux.Dense(5,  3,  x -> sigmoid_cap(x; ω₀=params.ωmax))
+            # Lux.Dense(5,  3,  x -> relu_cap(x; ω₀=params.ωmax))
+        )
+    else        
+        U = Lux.Chain(
+            Lux.Dense(1,  5,  sigmoid), 
+            Lux.Dense(5,  10, sigmoid), 
+            Lux.Dense(10, 5,  sigmoid),
+            Lux.Dense(5,  3,  x -> sigmoid_cap(x; ω₀=params.ωmax))
+        )
+    end
     θ, st = Lux.setup(rng, U)
     return U, θ, st
 end
@@ -67,7 +79,8 @@ function train(data::AD,
         end
         sol = solve(_prob, params.solver, saveat=T,
                     abstol=params.abstol, reltol=params.reltol,
-                    sensealg=params.sensealg)
+                    sensealg=params.sensealg, 
+                    dtmin=1e-4 * (params.tmax - params.tmin), force_dtmin=true) # Force minimum step in case L(t) changes drastically due to bad behaviour of neural network
         return Array(sol), sol.retcode
     end
 
@@ -101,7 +114,7 @@ function train(data::AD,
             for reg in params.reg    
                 reg₀ = regularization(β.θ, reg)
                 l_reg += reg₀      
-                loss_dict["Regularization (order=$(reg.order), power=$(reg.power)"] = reg₀
+                loss_dict["Regularization (order=$(reg.order), power=$(reg.power))"] = reg₀
             end 
         end
         return l_emp + l_reg, loss_dict
@@ -211,7 +224,7 @@ function train(data::AD,
 
     if params.niter_LBFGS > 0
         optprob2 = Optimization.OptimizationProblem(optf, res1.u)
-        res2 = Optimization.solve(optprob2, Optim.LBFGS(), callback=callback, maxiters=params.niter_LBFGS)
+        res2 = Optimization.solve(optprob2, Optim.LBFGS(), callback=callback, maxiters=params.niter_LBFGS) #, reltol=1e-6)
         println("Final training loss after $(length(losses)) iterations: $(losses[end])")
     else
         res2 = res1

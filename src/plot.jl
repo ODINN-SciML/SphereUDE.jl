@@ -23,12 +23,22 @@ function plot_sphere(# ax::PyCall.PyObject,
                      central_latitude::Float64, 
                      central_longitude::Float64;
                      saveas::Union{String, Nothing},
-                     title::String)
+                     title::String, 
+                     matplotlib_rcParams::Union{Dict, Nothing} = nothing)
 
     # cmap = mpl_colormap.get_cmap("viridis")
 
     plt.figure(figsize=(10,10))
     ax = plt.axes(projection=ccrs.Orthographic(central_latitude=central_latitude, central_longitude=central_longitude))
+    
+    # Set default plot parameters. 
+    # See https://matplotlib.org/stable/users/explain/customizing.html for customizable optionsz
+    if !isnothing(matplotlib_rcParams)
+        for (key, value) in matplotlib_rcParams
+            @warn "Setting Matplotlib parameters with rcParams currently not working. See following GitHub issue: https://github.com/JuliaPy/PyPlot.jl/issues/525"
+            mpl_base.rcParams[key] = value
+        end
+    end
 
     # ax.coastlines()
     ax.gridlines()
@@ -51,7 +61,7 @@ function plot_sphere(# ax::PyCall.PyObject,
                   linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
                   transform = ccrs.Geodetic())
     end
-    plt.title(title)
+    plt.title(title, fontsize=20)
     if !isnothing(saveas)
         plt.savefig(saveas, format="pdf")
     end
