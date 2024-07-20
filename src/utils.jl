@@ -4,7 +4,7 @@ export cart2sph, sph2cart
 export AbstractNoise, FisherNoise
 export quadrature, central_fdm, complex_step_differentiation
 export raise_warnings
-
+export isL1reg
 
 """
     sigmoid_cap(x; ω₀=1.0)
@@ -41,9 +41,12 @@ end
 function relu_cap(x; ω₀=1.0)
     min_value = - ω₀
     max_value = + ω₀
-    return min_value + (max_value - min_value) * max(0.0, min(x, 1.0))
+    return relu_cap(x, min_value, max_value)
 end
 
+function relu_cap(x, min_value::Float64, max_value::Float64)
+    return min_value + (max_value - min_value) * max(0.0, min(x, 1.0))
+end
 
 """
     relu(x::Complex)
@@ -59,6 +62,11 @@ end
 function relu_cap(z::Complex; ω₀=1.0)
     min_value = - ω₀
     max_value = + ω₀
+    return relu_cap(z, min_value, max_value)
+    # return min_value + (max_value - min_value) * relu(z - relu(z-1))
+end
+
+function relu_cap(z::Complex, min_value::Float64, max_value::Float64)
     return min_value + (max_value - min_value) * relu(z - relu(z-1))
 end
 
@@ -174,4 +182,17 @@ function raise_warnings(data::SphereData, params::SphereParameters)
     #     end
     # end
     nothing
+end
+
+"""
+
+Function to check for the presence of L1 regularization in the loss function. 
+"""
+function isL1reg(regs::Vector{R}) where {R <: AbstractRegularization}
+    for reg in regs 
+        if reg.power == 1
+            return true
+        end
+    end
+    return false
 end

@@ -28,6 +28,7 @@ include("train.jl")
 include("plot.jl")
 
 # Python libraries 
+const mpl_base::PyObject = isdefined(SphereUDE, :mpl_base) ? SphereUDE.mpl_base : PyNULL()
 const mpl_colors::PyObject = isdefined(SphereUDE, :mpl_colors) ? SphereUDE.mpl_colors : PyNULL()
 const mpl_colormap::PyObject = isdefined(SphereUDE, :mpl_colormap) ? SphereUDE.mpl_colormap : PyNULL()
 const sns::PyObject = isdefined(SphereUDE, :sns) ? SphereUDE.sns : PyNULL()
