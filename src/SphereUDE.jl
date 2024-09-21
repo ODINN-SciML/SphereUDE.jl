@@ -1,15 +1,13 @@
 __precompile__()
 module SphereUDE
 
-# types
-using Base: @kwdef
 # utils 
 # training 
 using LinearAlgebra, Statistics, Distributions
 using FastGaussQuadrature
 using Lux, Zygote, DiffEqFlux
 using ChainRules: @ignore_derivatives
-using OrdinaryDiffEq
+using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using SciMLSensitivity
 using Optimization, OptimizationOptimisers, OptimizationOptimJL, OptimizationPolyalgorithms
 using ComponentArrays
