@@ -88,28 +88,25 @@ end # run
 # Run different experiments
 
 λ₀ = 0.1
-λ₁ = 0.1
-# λ₀ = 0.1
-# λ₁ = 0.01
+λ₁ = 0.001
+
 run(; kappa = 50., 
-      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="CS"),  
+      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="FD"),  
               Regularization(order=0, power=2.0, λ=λ₀, diff_mode=nothing)], 
-      title = "plot_50_lambda$(λ₁)")
+      title = "plots/plot_50_lambda$(λ₁)")
 
 λ₀ = 0.1
 λ₁ = 0.1
-# λ₀ = 0.1
-# λ₁ = 0.01
+
 run(; kappa = 200., 
       regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="CS"),  
               Regularization(order=0, power=2.0, λ=λ₀)], 
-      title = "plot_200_lambda$(λ₁)")
+      title = "plots/plot_200_lambda$(λ₁)")
 
 λ₀ = 0.1
 λ₁ = 0.1
-# λ₀ = 0.1
-# λ₁ = 0.01
+
 run(; kappa = 1000., 
       regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="CS"),  
               Regularization(order=0, power=2.0, λ=λ₀)], 
-      title = "plot_1000_lambda$(λ₁)")
+      title = "plots/plot_1000_lambda$(λ₁)")
