@@ -31,6 +31,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 BenchmarkTools = "1"
+CSV = "0.10"
 ComponentArrays = "0.15"
 Distributions = "0.25"
 Infiltrator = "1.2"
@@ -48,8 +49,8 @@ Zygote = "0.6"
 julia = "1.7"
 
 [extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test", "Random"]
