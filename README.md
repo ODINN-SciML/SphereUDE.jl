@@ -64,7 +64,11 @@ To make plots using Matplotlib, Cartopy, and PMagPy, we install both [PyCall.jl]
 
 - Create a Python conda environment, based on [this conda environment file](https://raw.githubusercontent.com/facusapienza21/SphereUDE.jl/main/environment.yml), with all the required packages using `conda env create -f environment.yml`.
 - Inside the Julia REPL, install both `PyCall.jl` and `PyPlot.jl` with `] add PyCall, Pyplot`.
-- Specify the Python path of the new environment with `ENV["PYTHON"] = ...`, where you should complete the path of the Python installation that shows when you do `conda activate SphereUDE`, `which python`.
-- Inside the Julia REPL, execute `Pkg.build("PyCall")` to re-build PyCall with the new Python path. 
+- Specify the Python path of the new environment with `ENV["PYTHON"] = ...`, where you should complete the path of the Python installation that shows when you do `conda activate SphereUDE`, `which python`. Inside the Julia REPL, execute `Pkg.build("PyCall")` to re-build PyCall with the new Python path: 
+```
+julia> ENV["PYTHON"] = read(`which python`, String)[1:end-1] # trim backspace
+julia> import Pkg; Pkg.build("PyCall")
+julia> exit()
+```
 
 You are ready to use Python from your Julia session!

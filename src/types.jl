@@ -56,5 +56,9 @@ Regularization information
     order::I        # Order of derivative
     power::F        # Power of the Euclidean norm 
     λ::F            # Regularization hyperparameter
-    diff_mode::Union{Nothing, String}       # AD differentiation mode used in regulatization
+    # AD differentiation mode used in regulatization
+    diff_mode::Union{Nothing, String} = nothing
+
+    # Include this in the constructor
+    # @assert (order == 0) || (!isnothing(diff_mode)) "Diffentiation methods needs to be provided for regularization with order larger than zero." 
 end
