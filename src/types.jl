@@ -23,7 +23,7 @@ Training parameters
     niter_LBFGS::I
     reltol::F
     abstol::F
-    solver::OrdinaryDiffEq.OrdinaryDiffEqAlgorithm = Tsit5()
+    solver::OrdinaryDiffEqCore.OrdinaryDiffEqAlgorithm = Tsit5()
     sensealg::SciMLBase.AbstractAdjointSensitivityAlgorithm = QuadratureAdjoint(autojacvec=ReverseDiffVJP(true))
 end
 
@@ -43,7 +43,7 @@ Final results
 @kwdef struct Results{F <: AbstractFloat} <: AbstractResult
     θ::ComponentVector
     u0::Vector{F}
-    U::Lux.Chain
+    U::Lux.AbstractLuxLayer
     st::NamedTuple
     fit_times::Vector{F}
     fit_directions::Matrix{F}
