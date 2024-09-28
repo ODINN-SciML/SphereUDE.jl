@@ -1,5 +1,5 @@
 using LinearAlgebra, Statistics, Distributions 
-using OrdinaryDiffEq
+using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using SciMLSensitivity
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
 
