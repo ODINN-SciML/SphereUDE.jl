@@ -11,7 +11,9 @@ export isL1reg
 
 Normalization of the neural network last layer
 """
-function sigmoid_cap(x; ω₀=1.0)
+sigmoid_cap(x; ω₀=1.0) = sigmoid_cap(x, ω₀)
+
+function sigmoid_cap(x, ω₀)
     min_value = - ω₀
     max_value = + ω₀
     return min_value + (max_value - min_value) * sigmoid(x)
@@ -38,7 +40,9 @@ end
 """
     relu_cap(x; ω₀=1.0)
 """
-function relu_cap(x; ω₀=1.0)
+relu_cap(x; ω₀=1.0) = relu_cap(x, ω₀)
+
+function relu_cap(x, ω₀)
     min_value = - ω₀
     max_value = + ω₀
     return relu_cap(x, min_value, max_value)

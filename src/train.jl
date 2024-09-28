@@ -13,15 +13,15 @@ function get_NN(params, rng, θ_trained)
             # Lux.Dense(1,  5,  relu_cap), 
             # Lux.Dense(5,  10, relu_cap), 
             # Lux.Dense(10, 5,  relu_cap), 
-            Lux.Dense(5,  3,  x -> sigmoid_cap(x; ω₀=params.ωmax))
-            # Lux.Dense(5,  3,  x -> relu_cap(x; ω₀=params.ωmax))
+            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax))
+            # Lux.Dense(5, 3, Base.Fix2(relu_cap, params.ωmax))
         )
     else        
         U = Lux.Chain(
             Lux.Dense(1,  5,  sigmoid), 
             Lux.Dense(5,  10, sigmoid), 
             Lux.Dense(10, 5,  sigmoid),
-            Lux.Dense(5,  3,  x -> sigmoid_cap(x; ω₀=params.ωmax))
+            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax))
         )
     end
     θ, st = Lux.setup(rng, U)
