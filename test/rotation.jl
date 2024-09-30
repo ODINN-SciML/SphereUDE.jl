@@ -36,7 +36,7 @@ function test_single_rotation()
 
     data = SphereData(times=times_samples, directions=X, kappas=nothing, L=nothing)
 
-    regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode="FD"),  
+    regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=FiniteDifferences(1e-6)),  
             Regularization(order=0, power=2.0, λ=0.001, diff_mode=nothing)]
 
     params = SphereParameters(tmin = tspan[1], tmax = tspan[2], 

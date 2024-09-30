@@ -175,25 +175,28 @@ function train(data::AD,
         
         l_ = 0.0
         if reg.order==0
+            
             l_ += quadrature(t -> norm(predict_L(t, U, θ, st))^reg.power, params.tmin, params.tmax, n_nodes)
+        
         elseif reg.order==1
-            if reg.diff_mode=="AD"
+            
+            if typeof(reg.diff_mode) <: LuxNestedAD
                 throw("Method not working well.")
-                # Compute gradient using automatic differentiaion in the NN
-                # This currently doesn't run... too slow.
-
-                # Test this with the new implementation in Lux.jl:
-                # https://lux.csail.mit.edu/stable/manual/nested_autodiff
-            elseif reg.diff_mode=="FD"
+            
+            elseif typeof(reg.diff_mode) <: FiniteDifferences
                 # Finite differences 
-                ϵ = 0.1 * (params.tmax - params.tmin) / n_nodes
+                ϵ = reg.diff_mode.ϵ
                 l_ += quadrature(t -> norm(central_fdm(τ -> predict_L(τ, U, θ, st), t, ϵ=ϵ))^reg.power, params.tmin, params.tmax, n_nodes)
-            elseif reg.diff_mode=="CS"
+            
+            elseif typeof(reg.diff_mode) <: ComplexStepDifferentiation
                 # Complex step differentiation
-                l_ += quadrature(t -> norm(complex_step_differentiation(τ -> predict_L(τ, U, θ, st), t))^reg.power, params.tmin, params.tmax, n_nodes) 
+                ϵ = reg.diff_mode.ϵ
+                l_ += quadrature(t -> norm(complex_step_differentiation(τ -> predict_L(τ, U, θ, st), t, ϵ))^reg.power, params.tmin, params.tmax, n_nodes) 
+            
             else
                 throw("Method not implemented.")
             end
+        
         else
             throw("Method not implemented.")
         end

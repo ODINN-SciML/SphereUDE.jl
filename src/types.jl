@@ -2,11 +2,13 @@ export SphereParameters, AbstractParameters
 export SphereData, AbstractData
 export Results, AbstractResult
 export Regularization, AbstractRegularization
+export FiniteDifferences, ComplexStepDifferentiation, LuxNestedAD, AbstractDifferentiation
 
 abstract type AbstractParameters end
 abstract type AbstractData end
 abstract type AbstractRegularization end
 abstract type AbstractResult end
+abstract type AbstractDifferentiation end 
 
 """
 Training parameters
@@ -57,8 +59,23 @@ Regularization information
     power::F        # Power of the Euclidean norm 
     λ::F            # Regularization hyperparameter
     # AD differentiation mode used in regulatization
-    diff_mode::Union{Nothing, String} = nothing
+    diff_mode::Union{Nothing, AbstractDifferentiation} = nothing
 
     # Include this in the constructor
     # @assert (order == 0) || (!isnothing(diff_mode)) "Diffentiation methods needs to be provided for regularization with order larger than zero." 
+end
+
+"""
+Differentiation methods
+"""
+@kwdef struct FiniteDifferences{F <: AbstractFloat} <: AbstractDifferentiation
+    ϵ::F = 1e-10
+end
+
+@kwdef struct ComplexStepDifferentiation{F <: AbstractFloat} <: AbstractDifferentiation
+    ϵ::F = 1e-10
+end
+
+@kwdef struct LuxNestedAD <: AbstractDifferentiation
+    method::Union{Nothing, String} = nothing
 end

@@ -2,8 +2,8 @@ using Pkg; Pkg.activate(".")
 using Revise 
 
 using LinearAlgebra, Statistics, Distributions 
-using OrdinaryDiffEq
 using SciMLSensitivity
+using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
 
 using SphereUDE
@@ -71,7 +71,7 @@ params = SphereParameters(tmin = tspan[1], tmax = tspan[2],
                           train_initial_condition = false,
                           multiple_shooting = false, 
                           u0 = [0.0, 0.0, -1.0], ωmax = ω₀, reltol = reltol, abstol = abstol,
-                          niter_ADAM = 2000, niter_LBFGS = 1000, 
+                          niter_ADAM = 2000, niter_LBFGS = 2000, 
                           sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true))) 
 
 results = train(data, params, rng, nothing)
@@ -87,19 +87,21 @@ end # run
 
 # Run different experiments
 
+ϵ = 1e-5
+
 λ₀ = 0.1
-λ₁ = 0.001
+λ₁ = 0.01
 
 run(; kappa = 50., 
-      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="FD"),  
-              Regularization(order=0, power=2.0, λ=λ₀, diff_mode=nothing)], 
+      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode=FiniteDifferences(ϵ)),  
+              Regularization(order=0, power=2.0, λ=λ₀)], 
       title = "plots/plot_50_lambda$(λ₁)")
 
 λ₀ = 0.1
 λ₁ = 0.1
 
 run(; kappa = 200., 
-      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="CS"),  
+      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode=FiniteDifferences(ϵ)),  
               Regularization(order=0, power=2.0, λ=λ₀)], 
       title = "plots/plot_200_lambda$(λ₁)")
 
@@ -107,6 +109,6 @@ run(; kappa = 200.,
 λ₁ = 0.1
 
 run(; kappa = 1000., 
-      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="CS"),  
+      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode=FiniteDifferences(ϵ)),  
               Regularization(order=0, power=2.0, λ=λ₀)], 
       title = "plots/plot_1000_lambda$(λ₁)")
