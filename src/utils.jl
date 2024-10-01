@@ -139,13 +139,18 @@ end
 Numerical integral using Gaussian quadrature
 """
 function quadrature(f::Function, t₀, t₁, n_nodes::Int)
+    nodes, weigths = quadrature(t₀, t₁, n_nodes)
+    return dot(weigths, f.(nodes))
+end
+
+function quadrature(t₀, t₁, n_nodes::Int)
     ignore() do
         # Ignore AD here since FastGaussQuadrature is using mutating arrays
         nodes, weigths = gausslegendre(n_nodes)
     end
     nodes = (t₀+t₁)/2 .+ nodes * (t₁-t₀)/2
     weigths = (t₁-t₀) / 2 * weigths
-    return dot(weigths, f.(nodes))
+    return nodes, weigths
 end
 
 """
@@ -192,7 +197,10 @@ end
 
 Function to check for the presence of L1 regularization in the loss function. 
 """
-function isL1reg(regs::Vector{R}) where {R <: AbstractRegularization}
+function isL1reg(regs::Union{Vector{R}, Nothing}) where {R <: AbstractRegularization}
+    if isnothing(regs)
+        return false
+    end
     for reg in regs 
         if reg.power == 1
             return true

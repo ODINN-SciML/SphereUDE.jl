@@ -9,18 +9,22 @@ function get_NN(params, rng, θ_trained)
         U = Lux.Chain(
             Lux.Dense(1,  5,  sigmoid), 
             Lux.Dense(5,  10, sigmoid), 
+            Lux.Dense(10,  10, sigmoid), 
+            Lux.Dense(10,  10, sigmoid), 
             Lux.Dense(10, 5,  sigmoid), 
-            # Lux.Dense(1,  5,  relu_cap), 
-            # Lux.Dense(5,  10, relu_cap), 
-            # Lux.Dense(10, 5,  relu_cap), 
+            # Lux.Dense(1,  5,  Lux.relu), 
+            # Lux.Dense(5,  10, Lux.relu), 
+            # Lux.Dense(10, 5,  Lux.relu), 
             Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax))
             # Lux.Dense(5, 3, Base.Fix2(relu_cap, params.ωmax))
         )
     else        
         U = Lux.Chain(
-            Lux.Dense(1,  5,  sigmoid), 
-            Lux.Dense(5,  10, sigmoid), 
-            Lux.Dense(10, 5,  sigmoid),
+            Lux.Dense(1,  5,  gelu), 
+            Lux.Dense(5,  10, gelu), 
+            Lux.Dense(10,  10, gelu), 
+            Lux.Dense(10,  10, gelu), 
+            Lux.Dense(10, 5,  gelu),
             Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax))
         )
     end
@@ -51,6 +55,8 @@ function train(data::AD,
     raise_warnings(data::AD, params::AP)
 
     U, θ, st = get_NN(params, rng, θ_trained)
+    # Make it a stateful layer (this I don't know where is best to add it, it repeats)
+    smodel = StatefulLuxLayer{true}(U, θ, st)
 
     # Set component vector for Optimization
     if params.train_initial_condition
@@ -89,7 +95,7 @@ function train(data::AD,
 
         # If numerical integration fails or bad choice of parameter, return infinity
         if retcode != :Success
-            @warn "[SphereUDE] Numerical solver not converging. This can be causes by numerical innestabilities around a bad choice of parameter."
+            @warn "[SphereUDE] Numerical solver not converging. This can be causes by numerical innestabilities around a bad choice of parameter. This can be due to just a bad initial condition of the neural network, so it is worth changing the randon number used for initialization. "
             return Inf
         end
 
@@ -102,7 +108,7 @@ function train(data::AD,
             l_emp = 3.0 * mean(abs2.(u_ .- data.directions))
             # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
         else
-            l_emp = mean(data.kappas .* abs2.(u_ .- data.directions), dims=1)
+            l_emp = mean(data.kappas .* sum(abs2.(u_ .- data.directions), dims=1))
             # l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
         end
         loss_dict["Empirical"] = l_emp
@@ -181,7 +187,24 @@ function train(data::AD,
         elseif reg.order==1
             
             if typeof(reg.diff_mode) <: LuxNestedAD
-                throw("Method not working well.")
+                # Automatic Differentiation 
+                nodes, weights = quadrature(params.tmin, params.tmax, n_nodes)
+
+                if reg.diff_mode.method == "ForwardDiff"
+                    # Jac = ForwardDiff.jacobian(smodel, reshape(nodes, 1, n_nodes))
+                    Jac = batched_jacobian(smodel, AutoForwardDiff(), reshape(nodes, 1, n_nodes))
+                elseif reg.diff_mode.method == "Zygote"
+                    # This can also be done with Zygote in reverse mode
+                    # Jac = Zygote.jacobian(smodel, reshape(nodes, 1, n_nodes))[1]
+                    Jac = batched_jacobian(smodel, AutoZygote(), reshape(nodes, 1, n_nodes))
+                else
+                    throw("Method for AD backend no implemented.")
+                end
+
+                # Compute the final agregation to the loss
+                for j in 1:n_nodes
+                    l_ += weights[j] * norm(Jac[:,1,j])^reg.power
+                end
             
             elseif typeof(reg.diff_mode) <: FiniteDifferences
                 # Finite differences 
@@ -206,7 +229,7 @@ function train(data::AD,
     losses = Float64[]
     callback = function (p, l)
         push!(losses, l)
-        if length(losses) % 50 == 0
+        if length(losses) % 20 == 0
             println("Current loss after $(length(losses)) iterations: $(losses[end])")
         end
         if params.train_initial_condition
@@ -214,6 +237,8 @@ function train(data::AD,
         end 
         return false
     end
+
+    println("Loss after initalization: ", loss(β)[1])
 
     # Dispatch the right loss function
     f_loss = params.multiple_shooting ? loss_multiple_shooting : loss

@@ -77,5 +77,5 @@ end
 end
 
 @kwdef struct LuxNestedAD <: AbstractDifferentiation
-    method::Union{Nothing, String} = nothing
+    method::Union{Nothing, String} = "ForwardDiff"
 end

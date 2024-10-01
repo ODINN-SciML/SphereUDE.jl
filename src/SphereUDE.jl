@@ -8,7 +8,7 @@ using FastGaussQuadrature
 using Lux, Zygote, DiffEqFlux
 using ChainRules: @ignore_derivatives
 using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
-using SciMLSensitivity
+using SciMLSensitivity, ForwardDiff
 using Optimization, OptimizationOptimisers, OptimizationOptimJL, OptimizationPolyalgorithms
 using ComponentArrays
 using PyPlot, PyCall
