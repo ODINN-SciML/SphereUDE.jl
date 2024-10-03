@@ -19,14 +19,15 @@ Training parameters
     u0::Union{Vector{F}, Nothing}
     ωmax::F
     reg::Union{Nothing, Array}
-    train_initial_condition::Bool
-    multiple_shooting::Bool
+    train_initial_condition::Bool = false
+    multiple_shooting::Bool = false
     niter_ADAM::I
     niter_LBFGS::I
     reltol::F
     abstol::F
     solver::OrdinaryDiffEqCore.OrdinaryDiffEqAlgorithm = Tsit5()
     sensealg::SciMLBase.AbstractAdjointSensitivityAlgorithm = QuadratureAdjoint(autojacvec=ReverseDiffVJP(true))
+    pretrain::Bool = false
 end
 
 """
