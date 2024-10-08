@@ -1,6 +1,6 @@
 export sigmoid, sigmoid_cap
 export relu, relu_cap
-export gelu
+export gelu, rbf
 export cart2sph, sph2cart
 export AbstractNoise, FisherNoise
 export quadrature, central_fdm, complex_step_differentiation
@@ -18,6 +18,8 @@ import Lux: relu, gelu
 
 Normalization of the neural network last layer
 """
+rbf(x) = exp.(-(x .^ 2))
+
 sigmoid_cap(x; ω₀=1.0) = sigmoid_cap(x, ω₀)
 
 function sigmoid_cap(x, ω₀)

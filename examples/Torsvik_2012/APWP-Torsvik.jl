@@ -1,5 +1,6 @@
 using Pkg; Pkg.activate(".")
 using Revise 
+using Lux
 
 using LinearAlgebra, Statistics, Distributions 
 using SciMLSensitivity
@@ -13,8 +14,8 @@ using Random
 rng = Random.default_rng()
 Random.seed!(rng, 613)
 
-
 using DataFrames, CSV
+using Serialization
 
 df = CSV.read("./examples/Torsvik_2012/Torsvik-etal-2012_dataset.csv", DataFrame, delim=",")
 
@@ -51,17 +52,40 @@ data = SphereData(times=times, directions=X, kappas=kappas, L=nothing)
 tspan = [times[begin], times[end]]
 
 params = SphereParameters(tmin = tspan[1], tmax = tspan[2], 
-                        #   reg = [Regularization(order=1, power=2.0, λ=1e2, diff_mode=ComplexStepDifferentiation())], 
-                          reg = nothing, 
+                          reg = [Regularization(order=1, power=2.0, λ=1e5, diff_mode=LuxNestedAD())], 
+                        #   reg = nothing, 
                           pretrain = false, 
                           u0 = [0.0, 0.0, -1.0], ωmax = ω₀, 
-                          reltol = 1e-8, abstol = 1e-8,
-                          niter_ADAM = 3000, niter_LBFGS = 8000, 
+                          reltol = 1e-6, abstol = 1e-6,
+                          niter_ADAM = 2000, niter_LBFGS = 4000, 
                           sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true))) 
 
+# Linear interpolation function
+# currently not working
 
-                          
-results = train(data, params, rng, nothing)
+train_model = true
 
-plot_sphere(data, results, -30., 0., saveas="examples/Torsvik_2012/plots/plot_sphere.pdf", title="Double rotation") # , matplotlib_rcParams=Dict("font.size"=> 50))
+if train_model 
+
+  init_bias(rng, in_dims) = LinRange(tspan[1], tspan[2], in_dims)
+  init_weight(rng, out_dims, in_dims) = 0.1 * ones(out_dims, in_dims)
+
+  # Customized neural network to similate weighted moving window in L
+  U = Lux.Chain(
+      Lux.Dense(1, 200, rbf, init_bias=init_bias, init_weight=init_weight, use_bias=true),
+      Lux.Dense(200,10, gelu),
+      Lux.Dense(10, 3, Base.Fix2(sigmoid_cap, params.ωmax), use_bias=false)
+  )
+      
+  results = train(data, params, rng, nothing, U)
+  serialize("examples/Torsvik_2012/results.dat", Dict("data" => data,
+                                                      "params" => params,
+                                                      "results"=>results))
+else
+  # Read results 
+  res = deserialize("resuls.dat")
+  results = res["results"]
+end
+
+plot_sphere(data, results, -30., 0., saveas="examples/Torsvik_2012/plots/plot_sphere.pdf", title="Double rotation")
 plot_L(data, results, saveas="examples/Torsvik_2012/plots/plot_L.pdf", title="Double rotation")

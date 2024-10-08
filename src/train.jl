@@ -1,8 +1,8 @@
 export train
 
 function get_NN(params, rng, θ_trained)
-    # Define neural network 
-    
+    # Define default neural network 
+
     # For L1 regularization relu_cap works better, but for L2 I think is better to include sigmoid
     if isL1reg(params.reg)
         @warn "[SphereUDE] Using ReLU activation functions for neural network due to L1 regularization."
@@ -23,9 +23,8 @@ function get_NN(params, rng, θ_trained)
             Lux.Dense(10, 5,  gelu),
             Lux.Dense(5,  3,  Base.Fix2(sigmoid_cap, params.ωmax))
         )
-    end
-    θ, st = Lux.setup(rng, U)
-    return U, θ, st
+    end    
+    return U
 end
 
 """
@@ -35,6 +34,7 @@ Predict value of rotation given by L given by the neural network.
 """
 function predict_L(t, NN, θ, st)
     return NN([t], θ, st)[1]
+    # return 0.2 * ( NN([t-1.0], θ, st)[1] +  NN([t-0.5], θ, st)[1] +  NN([t], θ, st)[1] +  NN([t+0.5], θ, st)[1] +  NN([t+1.0], θ, st)[1] )
 end
 
 """
@@ -45,12 +45,18 @@ Training function.
 function train(data::AD,
                params::AP,
                rng, 
-               θ_trained=[]) where {AD <: AbstractData, AP <: AbstractParameters}
+               θ_trained=[],
+               model::Chain=nothing) where {AD <: AbstractData, AP <: AbstractParameters}
 
     # Raise warnings 
     raise_warnings(data::AD, params::AP)
-
-    U, θ, st = get_NN(params, rng, θ_trained)
+    
+    if isnothing(model)
+        U = get_NN(params, rng, θ_trained)
+    else
+        U = model
+    end
+    θ, st = Lux.setup(rng, U)
     # Make it a stateful layer (this I don't know where is best to add it, it repeats)
     smodel = StatefulLuxLayer{true}(U, θ, st)
 
@@ -247,7 +253,8 @@ function train(data::AD,
     callback = function (p, l)
         push!(losses, l)
         if length(losses) % 20 == 0
-            println("Current loss after $(length(losses)) iterations: $(losses[end])")
+            @printf "Iteration: [%5d / %5d] \t Loss: %.9f \n" length(losses) (params.niter_ADAM+params.niter_LBFGS) losses[end]
+            # println("Current loss after $(length(losses)) iterations: $(losses[end])")
         end
         if params.train_initial_condition
             p.u0 ./= norm(p.u0)
@@ -266,22 +273,23 @@ function train(data::AD,
     """
     Pretraining to find parameters without impossing regularization
     """
-    # if params.pretrain
-    #     losses_pretrain = Float64[]
-    #     callback_pretrain = function(p, l)
-    #         push!(losses_pretrain, l)
-    #         if length(losses_pretrain) % 100 == 0
-    #             println("[Pretrain with no regularization] Current loss after $(length(losses_pretrain)) iterations: $(losses_pretrain[end])")
-    #         end
-    #         return false
-    #     end
-    #     optf₀ = Optimization.OptimizationFunction((x, β) -> loss_empirical(x), adtype)
-    #     optprob₀ = Optimization.OptimizationProblem(optf₀, β)
-    #     res₀ = Optimization.solve(optprob₀, ADAM(), callback=callback_pretrain, maxiters=params.niter_ADAM, verbose=false)
-    #     optprob₁ = Optimization.OptimizationProblem(optf₀, res₀.u)
-    #     res₁ = Optimization.solve(optprob₁, Optim.BFGS(; initial_stepnorm=0.01, linesearch=LineSearches.BackTracking()), callback=callback_pretrain, maxiters=params.niter_LBFGS)
-    #     β = res₁.u
-    # end
+    if params.pretrain
+        losses_pretrain = Float64[]
+        callback_pretrain = function(p, l)
+            push!(losses_pretrain, l)
+            if length(losses_pretrain) % 100 == 0
+                @printf "[Pretrain with no regularization] Iteration: [%5d / %5d] \t Loss: %.9f \n" length(losses_pretrain) (params.niter_ADAM+params.niter_LBFGS) losses_pretrain[end]
+                # println("[Pretrain with no regularization] Current loss after $(length(losses_pretrain)) iterations: $(losses_pretrain[end])")
+            end
+            return false
+        end
+        optf₀ = Optimization.OptimizationFunction((x, β) -> loss_empirical(x), adtype)
+        optprob₀ = Optimization.OptimizationProblem(optf₀, β)
+        res₀ = Optimization.solve(optprob₀, ADAM(), callback=callback_pretrain, maxiters=params.niter_ADAM, verbose=false)
+        optprob₁ = Optimization.OptimizationProblem(optf₀, res₀.u)
+        res₁ = Optimization.solve(optprob₁, Optim.BFGS(; initial_stepnorm=0.01, linesearch=LineSearches.BackTracking()), callback=callback_pretrain, maxiters=params.niter_LBFGS)
+        β = res₁.u
+    end
 
     # To do: implement this with polyoptimizaion to put ADAM and BFGS in one step.
     # Maybe better to keep like this for the line search. 
