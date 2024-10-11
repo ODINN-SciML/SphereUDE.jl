@@ -46,7 +46,7 @@ function train(data::AD,
                params::AP,
                rng, 
                θ_trained=[],
-               model::Chain=nothing) where {AD <: AbstractData, AP <: AbstractParameters}
+               model::Union{Chain, Nothing}=nothing) where {AD <: AbstractData, AP <: AbstractParameters}
 
     # Raise warnings 
     raise_warnings(data::AD, params::AP)
@@ -171,10 +171,18 @@ function train(data::AD,
                 end
 
                 # Compute the final agregation to the loss
-                for j in 1:n_nodes
-                    l_ += weights[j] * norm(Jac[:,1,j])^reg.power
-                end
+                l_ += sum([weights[j] * norm(Jac[:,1,j])^reg.power for j in 1:n_nodes])
             
+                # Test every a few iterations that AD is working properly
+                if rand(Bernoulli(0.001))
+                    l_AD = sum([weights[j] * norm(Jac[:,1,j])^reg.power for j in 1:n_nodes])
+                    l_FD = quadrature(t -> norm(central_fdm(τ -> predict_L(τ, U, θ, st), t, 1e-5))^reg.power, params.tmin, params.tmax, n_nodes)
+                    if abs(l_AD - l_FD) < 1e-2 * l_FD 
+                        @warn "[SphereUDE] Nested AD is giving significant different results than Finite Differences."
+                        @printf "[SphereUDE] Regularization with AD: %.9f vs %.9f using Finite Differences" l_AD l_FD 
+                    end
+                end
+
             elseif typeof(reg.diff_mode) <: FiniteDifferences
                 # Finite differences 
                 l_ += quadrature(t -> norm(central_fdm(τ -> predict_L(τ, U, θ, st), t, reg.diff_mode.ϵ))^reg.power, params.tmin, params.tmax, n_nodes)
@@ -252,7 +260,7 @@ function train(data::AD,
     losses = Float64[]
     callback = function (p, l)
         push!(losses, l)
-        if length(losses) % 20 == 0
+        if length(losses) % 50 == 0
             @printf "Iteration: [%5d / %5d] \t Loss: %.9f \n" length(losses) (params.niter_ADAM+params.niter_LBFGS) losses[end]
             # println("Current loss after $(length(losses)) iterations: $(losses[end])")
         end
@@ -321,13 +329,15 @@ function train(data::AD,
     end 
 
     # Final Fit 
-    fit_times = collect(range(params.tmin,params.tmax, length=length(data.times)))
+    fit_times = collect(range(params.tmin,params.tmax, length=1000))
     fit_directions, _ = predict(β_trained, T=fit_times)
+    fit_rotations = reduce(hcat, (t -> U([t], θ_trained, st)[1]).(fit_times))
 
     # Recover final balance between different terms involved in the loss function to assess hyperparameter selection.
     _, loss_dict = loss(β_trained)
     pretty_table(loss_dict, sortkeys=true, header=["Loss term", "Value"])
 
     return Results(θ=θ_trained, u0=u0_trained, U=U, st=st,
-                   fit_times=fit_times, fit_directions=fit_directions)
+                   fit_times=fit_times, fit_directions=fit_directions, 
+                   fit_rotations=fit_rotations, losses=losses)
 end

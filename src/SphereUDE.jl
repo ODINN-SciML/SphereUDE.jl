@@ -13,10 +13,7 @@ using Optimization, OptimizationOptimisers, OptimizationOptimJL
 using OptimizationPolyalgorithms, LineSearches
 using ComponentArrays
 using PyPlot, PyCall
-using PrettyTables
-
-# Testing double-differentiation
-# using BatchedRoutines
+using PrettyTables, Printf
 
 # Debugging
 using Infiltrator
