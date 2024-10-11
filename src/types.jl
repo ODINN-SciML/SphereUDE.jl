@@ -50,6 +50,8 @@ Final results
     st::NamedTuple
     fit_times::Vector{F}
     fit_directions::Matrix{F}
+    fit_rotations::Matrix{F}
+    losses::Vector{F}
 end
 
 """
