@@ -45,6 +45,7 @@ function benchmark()
     
     #solvers = [BS5(), OwrenZen5(), OwrenZen3(), BS3(), Tsit5()]
     solvers = [BS5(), Tsit5()]
+    # Different sensealgs available at: https://docs.sciml.ai/SciMLSensitivity/stable/manual/differential_equation_sensitivities
     sensealgs = [QuadratureAdjoint(autojacvec=ReverseDiffVJP(true))]
     #sensealgs = [QuadratureAdjoint(autojacvec=ReverseDiffVJP(true)), InterpolatingAdjoint(autojacvec=ReverseDiffVJP(true))]
 
