@@ -8,14 +8,12 @@ using FastGaussQuadrature
 using Lux, Zygote, DiffEqFlux
 using ChainRules: @ignore_derivatives
 using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
-using SciMLSensitivity
-using Optimization, OptimizationOptimisers, OptimizationOptimJL, OptimizationPolyalgorithms
+using SciMLSensitivity, ForwardDiff
+using Optimization, OptimizationOptimisers, OptimizationOptimJL
+using OptimizationPolyalgorithms, LineSearches
 using ComponentArrays
 using PyPlot, PyCall
-using PrettyTables
-
-# Testing double-differentiation
-# using BatchedRoutines
+using PrettyTables, Printf
 
 # Debugging
 using Infiltrator

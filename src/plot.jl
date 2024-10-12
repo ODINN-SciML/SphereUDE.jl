@@ -40,7 +40,7 @@ function plot_sphere(# ax::PyCall.PyObject,
         end
     end
 
-    # ax.coastlines()
+    ax.coastlines()
     ax.gridlines()
     ax.set_global()
 

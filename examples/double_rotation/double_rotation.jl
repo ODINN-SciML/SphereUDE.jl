@@ -2,9 +2,10 @@ using Pkg; Pkg.activate(".")
 using Revise 
 
 using LinearAlgebra, Statistics, Distributions 
-using OrdinaryDiffEq
 using SciMLSensitivity
+using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
+using Lux 
 
 using SphereUDE
 
@@ -37,8 +38,8 @@ L0 = ω₀    .* [1.0, 0.0, 0.0]
 L1 = 0.6ω₀ .* [0.0, 1/sqrt(2), 1/sqrt(2)]
 
 # Solver tolerances 
-reltol = 1e-12
-abstol = 1e-12
+reltol = 1e-6
+abstol = 1e-6
 
 function L_true(t::Float64; τ₀=τ₀, p=[L0, L1])
     if t < τ₀
@@ -71,10 +72,19 @@ params = SphereParameters(tmin = tspan[1], tmax = tspan[2],
                           train_initial_condition = false,
                           multiple_shooting = false, 
                           u0 = [0.0, 0.0, -1.0], ωmax = ω₀, reltol = reltol, abstol = abstol,
-                          niter_ADAM = 2000, niter_LBFGS = 1000, 
+                          niter_ADAM = 5000, niter_LBFGS = 5000, 
                           sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true))) 
 
-results = train(data, params, rng, nothing)
+init_bias(rng, in_dims) = LinRange(tspan[1], tspan[2], in_dims)
+init_weight(rng, out_dims, in_dims) = 0.1 * ones(out_dims, in_dims)
+
+U = Lux.Chain(
+    Lux.Dense(1, 200, rbf, init_bias=init_bias, init_weight=init_weight, use_bias=true),
+    Lux.Dense(200,10, gelu),
+    Lux.Dense(10, 3, Base.Fix2(sigmoid_cap, params.ωmax), use_bias=false)
+)
+
+results = train(data, params, rng, nothing, U)
 
 ##############################################################
 ######################  PyCall Plots #########################
@@ -87,26 +97,75 @@ end # run
 
 # Run different experiments
 
-λ₀ = 0.1
-λ₁ = 0.001
+
+### Finite differeces
+
+# run(; kappa = 50., 
+#       regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=FiniteDifferences(1e-5)),  
+#               Regularization(order=0, power=2.0, λ=10.0)], 
+#       title = "plots/FD_plot_50")
+
+# run(; kappa = 200., 
+#       regs = [Regularization(order=1, power=1.0, λ=1.0, diff_mode=FiniteDifferences(1e-5)),  
+#               Regularization(order=0, power=2.0, λ=0.1)], 
+#       title = "plots/FD_plot_200")
+
+
+# run(; kappa = 1000., 
+#       regs = [Regularization(order=1, power=1.0, λ=1.0, diff_mode=FiniteDifferences(1e-5)),  
+#               Regularization(order=0, power=2.0, λ=0.1)], 
+#       title = "plots/FD_plot_1000")
+
+
+# Complex Step Method
+
+# run(; kappa = 50., 
+#       regs = [Regularization(order=1, power=1.0, λ=0.01, diff_mode=ComplexStepDifferentiation(1e-5)),  
+#               Regularization(order=0, power=2.0, λ=0.1)], 
+#       title = "plots/CS_plot_50")
+
+# run(; kappa = 200., 
+#       regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=ComplexStepDifferentiation(1e-5)),  
+#               Regularization(order=0, power=2.0, λ=0.1)], 
+#       title = "plots/CS_plot_200")
+
+
+# run(; kappa = 1000., 
+#       regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=ComplexStepDifferentiation(1e-5)),  
+#               Regularization(order=0, power=2.0, λ=0.1)], 
+#       title = "plots/CS_plot_1000")
+
+
+
+### AD
 
 run(; kappa = 50., 
-      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="FD"),  
-              Regularization(order=0, power=2.0, λ=λ₀, diff_mode=nothing)], 
-      title = "plots/plot_50_lambda$(λ₁)")
-
-λ₀ = 0.1
-λ₁ = 0.1
+      regs = [Regularization(order=1, power=1.0, λ=0.01, diff_mode=LuxNestedAD())], %,  
+            #   Regularization(order=0, power=2.0, λ=0.1)], 
+      title = "plots/AD_plot_50")
 
 run(; kappa = 200., 
-      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="CS"),  
-              Regularization(order=0, power=2.0, λ=λ₀)], 
-      title = "plots/plot_200_lambda$(λ₁)")
-
-λ₀ = 0.1
-λ₁ = 0.1
+      regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=LuxNestedAD()),  
+              Regularization(order=0, power=2.0, λ=0.1)], 
+      title = "plots/AD_plot_200")
 
 run(; kappa = 1000., 
-      regs = [Regularization(order=1, power=1.0, λ=λ₁, diff_mode="CS"),  
-              Regularization(order=0, power=2.0, λ=λ₀)], 
-      title = "plots/plot_1000_lambda$(λ₁)")
+      regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=LuxNestedAD()),  
+              Regularization(order=0, power=2.0, λ=0.1)], 
+      title = "plots/AD_plot_1000")
+
+
+### no first-order regularization
+
+# run(; kappa = 50., 
+#       regs = [Regularization(order=0, power=2.0, λ=0.1)], 
+#       title = "plots/None_plot_50")
+
+
+# run(; kappa = 200., 
+#       regs = [Regularization(order=0, power=2.0, λ=0.1)], 
+#       title = "plots/None_plot_200")
+
+run(; kappa = 1000., 
+      regs = nothing, 
+      title = "plots/_None_plot_1000")

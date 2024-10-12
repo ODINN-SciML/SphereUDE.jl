@@ -1,29 +1,38 @@
 export sigmoid, sigmoid_cap
 export relu, relu_cap
+export gelu, rbf
 export cart2sph, sph2cart
 export AbstractNoise, FisherNoise
 export quadrature, central_fdm, complex_step_differentiation
 export raise_warnings
 export isL1reg
+export convert2dict
+
+# Import activation function for complex extension
+import Lux: relu, gelu
+# import Lux: sigmoid, relu, gelu
+
+### Custom Activation Funtions
 
 """
     sigmoid_cap(x; ω₀=1.0)
 
 Normalization of the neural network last layer
 """
-function sigmoid_cap(x; ω₀=1.0)
+rbf(x) = exp.(-(x .^ 2))
+
+sigmoid_cap(x; ω₀=1.0) = sigmoid_cap(x, ω₀)
+
+function sigmoid_cap(x, ω₀)
     min_value = - ω₀
     max_value = + ω₀
     return min_value + (max_value - min_value) * sigmoid(x)
 end
 
+# For some reason, when I import the Lux.sigmoid function this train badly, 
+# increasing the value of the loss function over iterations...
 function sigmoid(x)
     return 1.0 / (1.0 + exp(-x))
-#     if x > 0
-#         return 1 / ( 1.0 + exp(-x) )
-#     else
-#         return exp(x) / (1.0 + exp(x))
-#     end
 end
 
 function sigmoid(z::Complex)
@@ -38,7 +47,9 @@ end
 """
     relu_cap(x; ω₀=1.0)
 """
-function relu_cap(x; ω₀=1.0)
+relu_cap(x; ω₀=1.0) = relu_cap(x, ω₀)
+
+function relu_cap(x, ω₀)
     min_value = - ω₀
     max_value = + ω₀
     return relu_cap(x, min_value, max_value)
@@ -47,6 +58,8 @@ end
 function relu_cap(x, min_value::Float64, max_value::Float64)
     return min_value + (max_value - min_value) * max(0.0, min(x, 1.0))
 end
+
+### Complex Expansion Activation Functions
 
 """
     relu(x::Complex)
@@ -66,9 +79,38 @@ function relu_cap(z::Complex; ω₀=1.0)
     # return min_value + (max_value - min_value) * relu(z - relu(z-1))
 end
 
+"""
+    relu_cap(z::Complex, min_value::Float64, max_value::Float64)
+"""
 function relu_cap(z::Complex, min_value::Float64, max_value::Float64)
     return min_value + (max_value - min_value) * relu(z - relu(z-1))
 end
+
+""" 
+    sigmoid(z::Complex)
+"""
+function sigmoid(z::Complex)
+    return 1.0 / ( 1.0 + exp(-z) )
+    # if real(z) > 0
+    #     return 1 / ( 1.0 + exp(-z) )
+    # else
+    #     return exp(z) / (1.0 + exp(z))
+    # end
+end
+
+"""
+    gelu(x::Complex)
+
+Extension of the GELU activation function for complex variables.
+We use the approximation using tanh() to avoid dealing with the complex error function
+"""
+function gelu(z::Complex)
+    # We use the Gelu approximation to avoid complex holomorphic error function
+    return 0.5 * z * (1 + tanh((sqrt(2/π))*(z + 0.044715 * z^3)))
+end
+
+
+### Spherical Utils
 
 """
     cart2sph(X::AbstractArray{<:Number}; radians::Bool=true)
@@ -129,19 +171,26 @@ function Base.:(+)(X::Array{F, 2}, ϵ::N) where {F <: AbstractFloat, N <: Abstra
     end
 end
 
+### Numerics Utils 
+
 """
     quadrature_integrate
 
 Numerical integral using Gaussian quadrature
 """
 function quadrature(f::Function, t₀, t₁, n_nodes::Int)
+    nodes, weigths = quadrature(t₀, t₁, n_nodes)
+    return dot(weigths, f.(nodes))
+end
+
+function quadrature(t₀, t₁, n_nodes::Int)
     ignore() do
         # Ignore AD here since FastGaussQuadrature is using mutating arrays
         nodes, weigths = gausslegendre(n_nodes)
     end
     nodes = (t₀+t₁)/2 .+ nodes * (t₁-t₀)/2
     weigths = (t₁-t₀) / 2 * weigths
-    return dot(weigths, f.(nodes))
+    return nodes, weigths
 end
 
 """
@@ -152,7 +201,7 @@ Simple central differences implementation.
 FiniteDifferences.jl does not work with AD so I implemented this manually. 
 Still remains to test this with FiniteDiff.jl
 """
-function central_fdm(f::Function, x::Float64; ϵ=0.01)
+function central_fdm(f::Function, x::Float64, ϵ::Float64)
     return (f(x+ϵ)-f(x-ϵ)) / (2ϵ) 
 end
 
@@ -161,9 +210,11 @@ end
 
 Manual implementation of complex-step differentiation
 """
-function complex_step_differentiation(f::Function, x::Float64; ϵ=1e-10)
+function complex_step_differentiation(f::Function, x::Float64, ϵ::Float64)
     return imag(f(x + ϵ * im)) / ϵ
 end
+
+### Other Utils
 
 """
     raise_warnings(data::AD, params::AP)
@@ -188,11 +239,28 @@ end
 
 Function to check for the presence of L1 regularization in the loss function. 
 """
-function isL1reg(regs::Vector{R}) where {R <: AbstractRegularization}
+function isL1reg(regs::Union{Vector{R}, Nothing}) where {R <: AbstractRegularization}
+    if isnothing(regs)
+        return false
+    end
     for reg in regs 
         if reg.power == 1
             return true
         end
     end
     return false
+end
+
+function convert2dict(data::SphereData, results::Results)
+    _dict = Dict()
+    _dict["times"] = data.times
+    _dict["directions"] = data.directions
+    _dict["kappas"] = data.kappas
+    _dict["u0"] = results.u0
+    _dict["fit_times"] = results.fit_times
+    _dict["fit_directions"] = results.fit_directions
+    _dict["fit_rotations"] = results.fit_rotations
+    _dict["losses"] = results.losses
+
+    return _dict
 end
