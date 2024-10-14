@@ -25,7 +25,9 @@ Training parameters
     niter_LBFGS::I
     reltol::F
     abstol::F
+    n_quadrature::I = 100
     solver::OrdinaryDiffEqCore.OrdinaryDiffEqAlgorithm = Tsit5()
+    adtype::Optimization.AbstractADType = AutoZygote()
     sensealg::SciMLBase.AbstractAdjointSensitivityAlgorithm = QuadratureAdjoint(autojacvec=ReverseDiffVJP(true))
     pretrain::Bool = false
 end

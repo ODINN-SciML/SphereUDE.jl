@@ -47,7 +47,7 @@ function test_single_rotation()
                             niter_ADAM = 20, niter_LBFGS = 10, 
                             sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true))) 
 
-    results = train(data, params, rng, nothing)
+    results = train(data, params, rng, nothing, nothing)
 
     @test true
 

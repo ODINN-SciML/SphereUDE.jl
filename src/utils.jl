@@ -7,9 +7,11 @@ export quadrature, central_fdm, complex_step_differentiation
 export raise_warnings
 export isL1reg
 export convert2dict
+export get_default_NN
 
 # Import activation function for complex extension
 import Lux: relu, gelu
+using Lux: Chain
 # import Lux: sigmoid, relu, gelu
 
 ### Custom Activation Funtions
@@ -109,6 +111,38 @@ function gelu(z::Complex)
     return 0.5 * z * (1 + tanh((sqrt(2/π))*(z + 0.044715 * z^3)))
 end
 
+### Machine Learning Utils
+
+"""
+
+Return a default neural network for those cases where NN has not being provided by user.
+"""
+function get_default_NN(params::AP, rng, θ_trained) where {AP <: AbstractParameters}
+    # Define default neural network 
+
+    # For L1 regularization relu_cap works better, but for L2 I think is better to include sigmoid
+    if isL1reg(params.reg)
+        @warn "[SphereUDE] Using ReLU activation functions for neural network due to L1 regularization."
+        U = Lux.Chain(
+            Lux.Dense(1,  5,  sigmoid), 
+            Lux.Dense(5,  10, sigmoid), 
+            Lux.Dense(10, 10, sigmoid), 
+            Lux.Dense(10, 10, sigmoid), 
+            Lux.Dense(10, 5,  sigmoid), 
+            Lux.Dense(5,  3,  Base.Fix2(sigmoid_cap, params.ωmax))
+        )
+    else        
+        U = Lux.Chain(
+            Lux.Dense(1,  5,  gelu), 
+            Lux.Dense(5,  10, gelu), 
+            Lux.Dense(10, 10, gelu), 
+            Lux.Dense(10, 10, gelu), 
+            Lux.Dense(10, 5,  gelu),
+            Lux.Dense(5,  3,  Base.Fix2(sigmoid_cap, params.ωmax))
+        )
+    end    
+    return U
+end
 
 ### Spherical Utils
 
@@ -178,15 +212,16 @@ end
 
 Numerical integral using Gaussian quadrature
 """
-function quadrature(f::Function, t₀, t₁, n_nodes::Int)
-    nodes, weigths = quadrature(t₀, t₁, n_nodes)
+function quadrature(f::Function, t₀, t₁, n_quadrature::Int)
+    nodes, weigths = quadrature(t₀, t₁, n_quadrature)
     return dot(weigths, f.(nodes))
 end
 
-function quadrature(t₀, t₁, n_nodes::Int)
+function quadrature(t₀, t₁, n_quadrature::Int)
     ignore() do
         # Ignore AD here since FastGaussQuadrature is using mutating arrays
-        nodes, weigths = gausslegendre(n_nodes)
+        nodes, weigths = gausslegendre(n_quadrature)
+        # nodes .+ rand(sampler(Uniform(-0.1,0.1)), n_quadrature)
     end
     nodes = (t₀+t₁)/2 .+ nodes * (t₁-t₀)/2
     weigths = (t₁-t₀) / 2 * weigths

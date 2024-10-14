@@ -20,6 +20,7 @@ using Infiltrator
 
 include("types.jl")
 include("utils.jl")
+include("losses.jl")
 include("train.jl")
 include("plot.jl")
 
