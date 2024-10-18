@@ -120,7 +120,7 @@ function train(data::AD,
 
     # Final Fit 
     fit_times = collect(range(params.tmin,params.tmax, length=1000))
-    fit_directions, _ = predict(β_trained, params, fit_times)
+    fit_directions = predict(β_trained, params, fit_times)
     fit_rotations = reduce(hcat, (t -> predict_L(t, U, β_trained.θ, st)).(fit_times))
 
     # Recover final balance between different terms involved in the loss function to assess hyperparameter selection.

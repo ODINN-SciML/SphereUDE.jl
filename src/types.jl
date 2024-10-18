@@ -3,6 +3,7 @@ export SphereData, AbstractData
 export Results, AbstractResult
 export Regularization, AbstractRegularization
 export FiniteDifferences, ComplexStepDifferentiation, LuxNestedAD, AbstractDifferentiation
+export CubicSplinesRegularization
 
 abstract type AbstractParameters end
 abstract type AbstractData end
@@ -68,6 +69,11 @@ Regularization information
 
     # Include this in the constructor
     # @assert (order == 0) || (!isnothing(diff_mode)) "Diffentiation methods needs to be provided for regularization with order larger than zero." 
+end
+
+@kwdef struct CubicSplinesRegularization{F <: AbstractFloat} <: AbstractRegularization
+    λ::F
+    diff_mode::Union{Nothing, AbstractDifferentiation} = nothing
 end
 
 """
