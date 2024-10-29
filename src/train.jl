@@ -49,8 +49,9 @@ function train(data::AD,
     losses = Float64[]
     callback = function (p, l)
         push!(losses, l)
-        if length(losses) % 50 == 0
-            @printf "Iteration: [%5d / %5d] \t Loss: %.9f \n" length(losses) (params.niter_ADAM+params.niter_LBFGS) losses[end]
+        if length(losses) % 100 == 0
+            _, l_dict =  f_loss(p)
+            @printf "Iteration: [%5d / %5d] \t Loss: %.9f    =    Empirical: %.9f   +   Regularization: %.9f \n" length(losses) (params.niter_ADAM+params.niter_LBFGS) sum(values(l_dict)) l_dict["Empirical"] (sum(values(l_dict))-l_dict["Empirical"])
         end
         if params.train_initial_condition
             p.u0 ./= norm(p.u0)
@@ -66,8 +67,6 @@ function train(data::AD,
         f_loss(β) = loss(β, data, params, U, st)
     end
     
-    println("Loss after initalization: ", f_loss(β)[1])
-
     """
     Pretraining to find parameters without impossing regularization
     """
@@ -81,7 +80,9 @@ function train(data::AD,
             end
             return false
         end
-        optf₀ = Optimization.OptimizationFunction((x, β) -> loss_empirical(x), params.adtype)
+        # Define the loss function with just empirical component 
+        f_loss_empirical(β) = loss_empirical(β, data, params)
+        optf₀ = Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
         optprob₀ = Optimization.OptimizationProblem(optf₀, β)
         res₀ = Optimization.solve(optprob₀, ADAM(), callback=callback_pretrain, maxiters=params.niter_ADAM, verbose=false)
         optprob₁ = Optimization.OptimizationProblem(optf₀, res₀.u)
@@ -89,8 +90,7 @@ function train(data::AD,
         β = res₁.u
     end
 
-    # To do: implement this with polyoptimizaion to put ADAM and BFGS in one step.
-    # Maybe better to keep like this for the line search. 
+    println("Loss after initalization: ", f_loss(β)[1])
 
     optf = Optimization.OptimizationFunction((x, β) -> (first ∘ f_loss)(x), params.adtype)
     optprob = Optimization.OptimizationProblem(optf, β)

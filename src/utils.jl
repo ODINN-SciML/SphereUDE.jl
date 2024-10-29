@@ -8,6 +8,7 @@ export raise_warnings
 export isL1reg
 export convert2dict
 export get_default_NN
+export fisher_mean
 
 # Import activation function for complex extension
 import Lux: relu, gelu
@@ -178,6 +179,16 @@ function sph2cart(X::AbstractArray{<:Number}; radians::Bool=true)
 end
 
 """
+Return Fisher mean on the sphere
+"""
+function fisher_mean(latitudes, longitudes; radians::Bool=true)
+    Y = sph2cart(hcat(latitudes, longitudes)', radians=radians)
+    Ŷ = mean(Y, dims=2)
+    Ŷ ./= norm(Ŷ)
+    return cart2sph(Ŷ, radians=radians)  
+end
+
+"""
 Add Fisher noise to matrix of three dimensional unit vectors
 
 This is carried by the definition of type FisherNoise <: AbstractNoise and 
@@ -218,11 +229,12 @@ function quadrature(f::Function, t₀, t₁, n_quadrature::Int)
 end
 
 function quadrature(t₀, t₁, n_quadrature::Int)
-    ignore() do
-        # Ignore AD here since FastGaussQuadrature is using mutating arrays
-        nodes, weigths = gausslegendre(n_quadrature)
-        # nodes .+ rand(sampler(Uniform(-0.1,0.1)), n_quadrature)
-    end
+    # Ignore AD here since FastGaussQuadrature is using mutating arrays
+    @ignore_derivatives nodes, weigths = gausslegendre(n_quadrature)
+    # ignore() do
+    #     nodes, weigths = gausslegendre(n_quadrature)
+    #     # nodes .+ rand(sampler(Uniform(-0.1,0.1)), n_quadrature)
+    # end
     nodes = (t₀+t₁)/2 .+ nodes * (t₁-t₀)/2
     weigths = (t₁-t₀) / 2 * weigths
     return nodes, weigths

@@ -19,6 +19,11 @@ function loss(β::ComponentVector,
     l_emp = loss_empirical(β, data, params)
 
     loss_dict["Empirical"] = l_emp
+
+    if params.hyperparameter_balance
+        # @ignore_derivatives l_emp /= l_emp
+        l_emp = log(l_emp)
+    end
     
     # Regularization
     l_reg = 0.0
@@ -34,6 +39,10 @@ function loss(β::ComponentVector,
                 throw("Regularization not implemented.")
             end
             # Add contribution to regularization
+            if params.hyperparameter_balance
+                reg₀ = log(reg₀)
+                # @ignore_derivatives reg₀ /= reg₀
+            end
             l_reg += reg₀              
         end 
     end
