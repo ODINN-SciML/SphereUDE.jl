@@ -61,7 +61,7 @@ function plot_sphere(# ax::PyCall.PyObject,
                   linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
                   transform = ccrs.Geodetic())
     end
-    plt.title(title, fontsize=20)
+    # plt.title(title, fontsize=20)
     if !isnothing(saveas)
         plt.savefig(saveas, format="pdf")
     end
@@ -97,7 +97,7 @@ function plot_L(data::AbstractData,
     plt.xlabel("Time")
     plt.ylabel("Angular Velocity")
     plt.legend()
-    plt.title(title)
+    # plt.title(title)
 
     if !isnothing(saveas)
         plt.savefig(saveas, format="pdf")
