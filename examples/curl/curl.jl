@@ -4,6 +4,7 @@ using Revise
 using LinearAlgebra, Statistics, Distributions 
 using SciMLSensitivity
 using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
+using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
 using Lux 
 using JLD2
@@ -18,6 +19,7 @@ using SphereUDE
 using Random
 rng = Random.default_rng()
 Random.seed!(rng, 333)
+Random.seed!(rng, 333)
 
 # Total time simulation
 tspan = [0, 100.0]
@@ -25,18 +27,27 @@ tspan = [0, 100.0]
 N_samples = 300
 # Times where we sample points
 times_samples = collect(LinRange(tspan[1], tspan[2], N_samples))
+times_samples = collect(LinRange(tspan[1], tspan[2], N_samples))
 
 # Expected maximum angular deviation in one unit of time (degrees)
 Δω₀ = 10.0  
 # Angular velocity 
+Δω₀ = 10.0  
+# Angular velocity 
 ω₀ = Δω₀ * π / 180.0
+# Angular momentum
 # Angular momentum
 
 # Solver tolerances 
 reltol = 1e-6
 abstol = 1e-6
+reltol = 1e-6
+abstol = 1e-6
 
 function L_true(t::Float64)
+    lon = 0.0
+    lat = -40.0 * (t - tspan[2]) / (tspan[2] - tspan[1]) - 40.0 * (t - tspan[1]) / (tspan[2] - tspan[1])
+    return ω₀ * sph2cart([lat, lon], radians=false)
     lon = 0.0
     lat = -40.0 * (t - tspan[2]) / (tspan[2] - tspan[1]) - 40.0 * (t - tspan[1]) / (tspan[2] - tspan[1])
     return ω₀ * sph2cart([lat, lon], radians=false)
@@ -52,15 +63,22 @@ x0 /= norm(x0)
 
 prob = ODEProblem(true_rotation!, x0, tspan)
 true_sol  = solve(prob, Tsit5(), reltol = reltol, abstol = abstol, saveat = times_samples)
+x0 = [0.5, 0.0, 0.7]
+x0 /= norm(x0)
+
+prob = ODEProblem(true_rotation!, x0, tspan)
+true_sol  = solve(prob, Tsit5(), reltol = reltol, abstol = abstol, saveat = times_samples)
 
 # Add Fisher noise to true solution 
 X_noiseless = Array(true_sol)
+X_true = X_noiseless #+ FisherNoise(kappa=1000.0) 
 X_true = X_noiseless #+ FisherNoise(kappa=1000.0) 
 
 ##############################################################
 #######################  Training  ###########################
 ##############################################################
 
+data = SphereData(times=times_samples, directions=X_true, kappas=nothing, L=L_true)
 data = SphereData(times=times_samples, directions=X_true, kappas=nothing, L=L_true)
 
 params = SphereParameters(tmin = tspan[1], tmax = tspan[2], 
@@ -89,6 +107,9 @@ JLD2.@save "examples/curl/results/results_dict.jld2" results_dict
 ##############################################################
 ######################  PyCall Plots #########################
 ##############################################################
+
+plot_sphere(data, results, 0.0, 0.0, saveas="examples/curl/_sphere.pdf", title="Curl") # , matplotlib_rcParams=Dict("font.size"=> 50))
+plot_L(data, results, saveas="examples/curl/_L.pdf", title="Curl")
 
 plot_sphere(data, results, 0.0, 0.0, saveas="examples/curl/_sphere.pdf", title="Curl") # , matplotlib_rcParams=Dict("font.size"=> 50))
 plot_L(data, results, saveas="examples/curl/_L.pdf", title="Curl")
