@@ -6,6 +6,7 @@ using SciMLSensitivity
 using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
 using Lux 
+using JLD2
 
 using SphereUDE
 
@@ -63,24 +64,27 @@ X_true = X_noiseless #+ FisherNoise(kappa=1000.0)
 data = SphereData(times=times_samples, directions=X_true, kappas=nothing, L=L_true)
 
 params = SphereParameters(tmin = tspan[1], tmax = tspan[2], 
-                          reg = [Regularization(order=1, power=2.0, λ=1e1, diff_mode=LuxNestedAD())], 
+                          reg = nothing, #[Regularization(order=1, power=2.0, λ=1e0, diff_mode=LuxNestedAD())], 
                           u0 = [0.0, 0.0, -1.0],
                           train_initial_condition = true,
                           ωmax = ω₀, reltol = reltol, abstol = abstol,
-                          niter_ADAM = 2000, niter_LBFGS = 1000, 
-                          pretrain = true, 
-                          sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true))) 
+                          niter_ADAM = 2000, niter_LBFGS = 8000, 
+                          pretrain = false, 
+                          sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true))) 
 
 init_bias(rng, in_dims) = LinRange(tspan[1], tspan[2], in_dims)
 init_weight(rng, out_dims, in_dims) = 0.1 * ones(out_dims, in_dims)
 
 U = Lux.Chain(
     Lux.Dense(1, 200, rbf, init_bias=init_bias, init_weight=init_weight, use_bias=true),
-    Lux.Dense(200,10, relu),
+    Lux.Dense(200,10, gelu),
     Lux.Dense(10, 3, Base.Fix2(sigmoid_cap, params.ωmax), use_bias=false)
 )
 
 results = train(data, params, rng, nothing, U)
+results_dict = convert2dict(data, results)
+
+JLD2.@save "examples/curl/results/results_dict.jld2" results_dict
 
 ##############################################################
 ######################  PyCall Plots #########################
