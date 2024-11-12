@@ -123,7 +123,6 @@ function get_default_NN(params::AP, rng, θ_trained) where {AP <: AbstractParame
 
     # For L1 regularization relu_cap works better, but for L2 I think is better to include sigmoid
     if isL1reg(params.reg)
-        @warn "[SphereUDE] Using ReLU activation functions for neural network due to L1 regularization."
         U = Lux.Chain(
             Lux.Dense(1,  5,  sigmoid), 
             Lux.Dense(5,  10, sigmoid), 

@@ -6,6 +6,7 @@ using SciMLSensitivity
 using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using Optimization, OptimizationOptimisers, OptimizationOptimJL
 using Lux 
+using JLD2
 
 using SphereUDE
 
@@ -72,15 +73,18 @@ params = SphereParameters(tmin = tspan[1], tmax = tspan[2],
                           train_initial_condition = false,
                           multiple_shooting = false, 
                           u0 = [0.0, 0.0, -1.0], ωmax = ω₀, reltol = reltol, abstol = abstol,
-                          niter_ADAM = 2000, niter_LBFGS = 1000, 
-                          sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true))) 
+                          niter_ADAM = 3000, niter_LBFGS = 2000, 
+                          sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true))) 
 
 init_bias(rng, in_dims) = LinRange(tspan[1], tspan[2], in_dims)
 init_weight(rng, out_dims, in_dims) = 0.1 * ones(out_dims, in_dims)
 
+# Testing sigmoids to see how it works
 U = Lux.Chain(
     Lux.Dense(1, 200, rbf, init_bias=init_bias, init_weight=init_weight, use_bias=true),
-    Lux.Dense(200,10, relu),
+#     Lux.Dense(200,10, relu),
+      Lux.Dense(200,50, SphereUDE.sigmoid),
+      Lux.Dense(50,10, SphereUDE.sigmoid),
     Lux.Dense(10, 3, Base.Fix2(sigmoid_cap, params.ωmax), use_bias=false)
 )
 
@@ -92,6 +96,8 @@ results = train(data, params, rng, nothing, U)
 
 plot_sphere(data, results, -20., 125., saveas="examples/double_rotation/" * title * "_sphere.pdf", title="Double rotation") # , matplotlib_rcParams=Dict("font.size"=> 50))
 plot_L(data, results, saveas="examples/double_rotation/" * title * "_L.pdf", title="Double rotation")
+
+return data, results
 
 end # run
 
@@ -139,21 +145,26 @@ end # run
 
 ### AD
 
-run(; kappa = 50., 
-      regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=LuxNestedAD())], 
-            #   Regularization(order=0, power=2.0, λ=0.1)], 
-      title = "plots/AD_plot_50")
+data_50, results_50 = run(; kappa = 50., 
+                regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=LuxNestedAD())], 
+                        #   Regularization(order=0, power=2.0, λ=0.1)], 
+                title = "plots/AD_plot_50")
+results_dict_50 = convert2dict(data_50, results_50)
+JLD2.@save "examples/double_rotation/results/results_dict_50.jld2" results_dict_50
 
-run(; kappa = 200., 
-      regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=LuxNestedAD())],  
-            #   Regularization(order=0, power=2.0, λ=0.1)], 
-      title = "plots/AD_plot_200")
+data_200, results_200 = run(; kappa = 200., 
+                        regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=LuxNestedAD())],  
+                              #   Regularization(order=0, power=2.0, λ=0.1)], 
+                        title = "plots/AD_plot_200")
+results_dict_200 = convert2dict(data_200, results_200)
+JLD2.@save "examples/double_rotation/results/results_dict_200.jld2" results_dict_200
 
-run(; kappa = 1000., 
-      regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=LuxNestedAD())],  
+data_1000, results_1000 = run(; kappa = 1000., 
+      regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=LuxNestedAD())],
             #   Regularization(order=0, power=2.0, λ=0.1)], 
       title = "plots/AD_plot_1000")
-
+results_dict_1000 = convert2dict(data_1000, results_1000)
+JLD2.@save "examples/double_rotation/results/results_dict_1000.jld2" results_dict_1000
 
 ### no first-order regularization
 
@@ -166,6 +177,9 @@ run(; kappa = 1000.,
 #       regs = [Regularization(order=0, power=2.0, λ=0.1)], 
 #       title = "plots/None_plot_200")
 
-run(; kappa = 1000., 
-      regs = nothing, 
-      title = "plots/_None_plot_1000")
+# run(; kappa = 1000., 
+#       regs = nothing, 
+#       title = "plots/_None_plot_1000")
+
+a = 1
+b = 2

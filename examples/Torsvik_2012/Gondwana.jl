@@ -51,23 +51,22 @@ data = SphereData(times=times, directions=X, kappas=kappas, L=nothing)
 
 tspan = [times[begin], times[end]]
 
-# params = SphereParameters(tmin = tspan[1], tmax = tspan[2], 
-#                           reg = [Regularization(order=1, power=2.0, λ=1e5, diff_mode=FiniteDifferences(1e-4))], 
-#                           # reg = nothing, 
-#                           pretrain = false, 
-#                           u0 = [0.0, 0.0, -1.0], ωmax = ω₀, 
-#                           reltol = 1e-6, abstol = 1e-6,
-#                           niter_ADAM = 5000, niter_LBFGS = 5000, 
-#                           sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true))) 
 params = SphereParameters(tmin = tspan[1], tmax = tspan[2], 
-                          reg = [Regularization(order=1, power=2.0, λ=1.0, diff_mode=FiniteDifferences(1e-4))], 
+                          reg = [Regularization(order=1, power=2.0, λ=1e5, diff_mode=FiniteDifferences(1e-4))], 
                           # reg = nothing, 
                           pretrain = false, 
                           u0 = [0.0, 0.0, -1.0], ωmax = ω₀, 
                           reltol = 1e-6, abstol = 1e-6,
-                          niter_ADAM = 2000, niter_LBFGS = 2000, 
-                          sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)), 
-                          hyperparameter_balance = true) 
+                          niter_ADAM = 5000, niter_LBFGS = 5000, 
+                          sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true))) 
+# params = SphereParameters(tmin = tspan[1], tmax = tspan[2], 
+#                           reg = [Regularization(order=1, power=2.0, λ=1.0, diff_mode=FiniteDifferences(1e-4))], 
+#                           pretrain = false, 
+#                           u0 = [0.0, 0.0, -1.0], ωmax = ω₀, 
+#                           reltol = 1e-6, abstol = 1e-6,
+#                           niter_ADAM = 2000, niter_LBFGS = 2000, 
+#                           sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)), 
+#                           hyperparameter_balance = false) 
 
 
 init_bias(rng, in_dims) = LinRange(tspan[1], tspan[2], in_dims)
@@ -84,7 +83,8 @@ results = train(data, params, rng, nothing, U)
 results_dict = convert2dict(data, results)
 
 
-# JLD2.@save "examples/Torsvik_2012/results/results_dict.jld2" results_dict
+JLD2.@save "examples/Torsvik_2012/results/results_dict.jld2" results_dict
 
 plot_sphere(data, results, -30., 0., saveas="examples/Torsvik_2012/plots/plot_sphere.pdf", title="Double rotation")
+plot_sphere(data, results, -30., 0., saveas="examples/Torsvik_2012/plots/plot_sphere.png", title="Double rotation")
 plot_L(data, results, saveas="examples/Torsvik_2012/plots/plot_L.pdf", title="Double rotation")
