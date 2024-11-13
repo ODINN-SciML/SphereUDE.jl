@@ -50,11 +50,11 @@ function train(data::AD,
     callback = function (p, l)
         push!(losses, l)
         if length(losses) % 100 == 0
-            _, l_dict =  f_loss(p)
+            _, l_dict =  f_loss(p.u)
             @printf "Iteration: [%5d / %5d] \t Loss: %.9f    =    Empirical: %.9f   +   Regularization: %.9f \n" length(losses) (params.niter_ADAM+params.niter_LBFGS) sum(values(l_dict)) l_dict["Empirical"] (sum(values(l_dict))-l_dict["Empirical"])
         end
         if params.train_initial_condition
-            p.u0 ./= norm(p.u0)
+            p.u.u0 ./= norm(p.u.u0)
         end 
         return false
     end
