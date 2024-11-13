@@ -28,15 +28,15 @@ function plot_sphere(# ax::PyCall.PyObject,
 
     # cmap = mpl_colormap.get_cmap("viridis")
 
-    plt.figure(figsize=(10,10))
-    ax = plt.axes(projection=ccrs.Orthographic(central_latitude=central_latitude, central_longitude=central_longitude))
+    plt[].figure(figsize=(10,10))
+    ax = plt[].axes(projection=ccrs[].Orthographic(central_latitude=central_latitude, central_longitude=central_longitude))
     
     # Set default plot parameters. 
     # See https://matplotlib.org/stable/users/explain/customizing.html for customizable optionsz
     if !isnothing(matplotlib_rcParams)
         for (key, value) in matplotlib_rcParams
             @warn "Setting Matplotlib parameters with rcParams currently not working. See following GitHub issue: https://github.com/JuliaPy/PyPlot.jl/issues/525"
-            mpl_base.rcParams[key] = value
+            mpl_base[].rcParams[key] = value
         end
     end
 
@@ -50,20 +50,20 @@ function plot_sphere(# ax::PyCall.PyObject,
 
     # Plots in Python follow the long, lat ordering 
 
-    sns.scatterplot(ax=ax, x = X_true_points[2,:], y=X_true_points[1, :], 
-                    hue = data.times, s=150,
-                    palette="viridis",
-                    transform = ccrs.PlateCarree());
+    sns[].scatterplot(ax=ax, x = X_true_points[2,:], y=X_true_points[1, :], 
+                      hue = data.times, s=150,
+                      palette="viridis",
+                      transform = ccrs[].PlateCarree());
     
     for i in 1:(length(results.fit_times)-1)
-        plt.plot([X_fit_path[2,i], X_fit_path[2,i+1]], 
-                 [X_fit_path[1,i], X_fit_path[1,i+1]],
-                  linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
-                  transform = ccrs.Geodetic())
+        plt[].plot([X_fit_path[2,i], X_fit_path[2,i+1]], 
+                   [X_fit_path[1,i], X_fit_path[1,i+1]],
+                    linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
+                    transform = ccrs[].Geodetic())
     end
     # plt.title(title, fontsize=20)
     if !isnothing(saveas)
-        plt.savefig(saveas, format="pdf")
+        plt[].savefig(saveas, format="pdf")
     end
 
     return nothing
@@ -78,7 +78,7 @@ function plot_L(data::AbstractData,
                 saveas::Union{String, Nothing},
                 title::String)
 
-    fig, ax = plt.subplots(figsize=(10,5))
+    fig, ax = plt[].subplots(figsize=(10,5))
 
     times_smooth = collect(LinRange(results.fit_times[begin], results.fit_times[end], 1000))
     Ls = reduce(hcat, (t -> results.U([t], results.θ, results.st)[1]).(times_smooth))
@@ -94,13 +94,13 @@ function plot_L(data::AbstractData,
     end
     
     # plt.title("")
-    plt.xlabel("Time")
-    plt.ylabel("Angular Velocity")
-    plt.legend()
+    plt[].xlabel("Time")
+    plt[].ylabel("Angular Velocity")
+    plt[].legend()
     # plt.title(title)
 
     if !isnothing(saveas)
-        plt.savefig(saveas, format="pdf")
+        plt[].savefig(saveas, format="pdf")
     end
 
     return nothing
