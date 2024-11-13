@@ -24,18 +24,12 @@ include("losses.jl")
 include("train.jl")
 include("plot.jl")
 
-# Python libraries 
-# const mpl_base::PyObject = isdefined(SphereUDE, :mpl_base) ? SphereUDE.mpl_base : PyNULL()
-# const mpl_colors::PyObject = isdefined(SphereUDE, :mpl_colors) ? SphereUDE.mpl_colors : PyNULL()
-# const mpl_colormap::PyObject = isdefined(SphereUDE, :mpl_colormap) ? SphereUDE.mpl_colormap : PyNULL()
-# const sns::PyObject = isdefined(SphereUDE, :sns) ? SphereUDE.sns : PyNULL()
-# const ccrs::PyObject = isdefined(SphereUDE, :ccrs) ? SphereUDE.ccrs : PyNULL()
-# const feature::PyObject = isdefined(SphereUDE, :feature) ? SphereUDE.feature : PyNULL()
 
 # We define empty objects for the Python packages
 const mpl_base = Ref{Py}()
 const mpl_colors = Ref{Py}()
 const mpl_colormap = Ref{Py}()
+const plt = Ref{Py}()
 const sns = Ref{Py}()
 const ccrs = Ref{Py}()
 const feature = Ref{Py}()
