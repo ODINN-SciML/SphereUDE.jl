@@ -44,7 +44,7 @@ function test_single_rotation()
                             train_initial_condition = false,
                             multiple_shooting = false, 
                             u0 = [0.0, 0.0, -1.0], ωmax = ω₀, reltol = 1e-12, abstol = 1e-12,
-                            niter_ADAM = 20, niter_LBFGS = 10, 
+                            niter_ADAM = 201, niter_LBFGS = 201, 
                             sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true))) 
 
     results = train(data, params, rng, nothing, nothing)
