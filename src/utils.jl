@@ -38,15 +38,6 @@ function sigmoid(x)
     return 1.0 / (1.0 + exp(-x))
 end
 
-function sigmoid(z::Complex)
-    return 1.0 / ( 1.0 + exp(-z) )
-    # if real(z) > 0
-    #     return 1 / ( 1.0 + exp(-z) )
-    # else
-    #     return exp(z) / (1.0 + exp(z))
-    # end
-end
-
 """
     relu_cap(x; ω₀=1.0)
 """
@@ -94,11 +85,6 @@ end
 """
 function sigmoid(z::Complex)
     return 1.0 / ( 1.0 + exp(-z) )
-    # if real(z) > 0
-    #     return 1 / ( 1.0 + exp(-z) )
-    # else
-    #     return exp(z) / (1.0 + exp(z))
-    # end
 end
 
 """
