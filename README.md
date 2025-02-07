@@ -9,48 +9,15 @@ It implements a simple universal differential equation (UDE) that naturally cons
 This has an important application in Paleomagnetism, where the objective is to fit Apparent Polar Wander Paths (APWPs) to reconstruct continents' past motion. 
 In addition to sphere regression, SphereUDE.jl implements a series of improvements over previous modeling methods, such as 
 - Explicit sphere constraint that allows for univesality of regression 
-- Regularization on the path to incorporate physical priors 
+- Regularization on the path to incorporate physical priors
+
+We are further working in new features such as
 - Incorporation of temporal and spatial uncertainties
 - Uncertainty quantification capabilities
 
-## Usage
-
-To train a model with new unobserved data, we need to define the _data_, _parameters_, and _regularization_ we want to use. 
-Data are defined as 
-```julia 
-data = SphereData(times=times_samples, 
-                  directions=X_true, 
-                  kappas=nothing, 
-                  L=L_true)
-
-```
-where `times` correspond to an array of the sampled times where we observed the three-dimensional vectors in `directions`. 
-We can further add an array `kappa` to specify uncertainty in the directions according to the Fisher distribution in the sphere. 
-
-It is possible to add different types of regularizations at the same time by specifying an array of the type `Regularization`, which specifies the type of regularization being used and the `diff_mode` that specifies the underlying automatic differentiation machinery being used to compute the gradients. 
-```julia
-regs = [Regularization(order=1, power=1.0, λ=0.001, diff_mode="Finite Differences"), 
-        Regularization(order=0, power=2.0, λ=0.1, diff_mode="Finite Differences")]
-
-```
-Finally, the parameters include the regularization together with other customizable training parameters:
-```julia
-params = SphereParameters(tmin=0.0, tmax=100.0, 
-                          reg=regs, 
-                          u0=[0.0, 0.0, -1.0], ωmax=1.0, reltol=1e-12, abstol=1e-12,
-                          niter_ADAM=1000, niter_LBFGS=600)
-```
-
-Training is finally being done with 
-```julia
-results = train(data, params, rng, nothing)
-```
-with `rng` a random seed used for the initial setup of the neural network. 
-
-Here there is a simple [example](https://github.com/facusapienza21/SphereUDE.jl/blob/main/examples/double_rotation/double_rotation.jl) for the reconstruction of two solid rotations using `SphereUDE.jl`. 
-
 ## Installing SphereUDE
 
+`SphereUDE.jl` is available thought the Julia package manager. 
 To install `SphereUDE` in a given environment, just do in the REPL:
 ```julia
 julia> ] # enter Pkg mode
@@ -58,17 +25,82 @@ julia> ] # enter Pkg mode
 (MyEnvironment) pkg> add SphereUDE
 ```
 
-## SphereUDE initialization: integration with Python
+## Usage
 
-To make plots using Matplotlib, Cartopy, and PMagPy, we install both [PyCall.jl](https://github.com/JuliaPy/PyCall.jl) and [PyPlot.jl](https://github.com/JuliaPy/PyPlot.jl) and execute Python code directly from Julia. To do this setup manually, you can follow the next steps. 
+If you are interested in using `SphereUDE.jl`, we encourage you to take a look at our galery of examples. 
+Examples are included in the repository [ODINN-SciML/SphereUDE-examples](https://github.com/ODINN-SciML/SphereUDE-examples).
 
-- Create a Python conda environment, based on [this conda environment file](https://raw.githubusercontent.com/facusapienza21/SphereUDE.jl/main/environment.yml), with all the required packages using `conda env create -f environment.yml`.
-- Inside the Julia REPL, install both `PyCall.jl` and `PyPlot.jl` with `] add PyCall, Pyplot`.
-- Specify the Python path of the new environment with `ENV["PYTHON"] = ...`, where you should complete the path of the Python installation that shows when you do `conda activate SphereUDE`, `which python`. Inside the Julia REPL, execute `Pkg.build("PyCall")` to re-build PyCall with the new Python path: 
+To train a model with new unobserved data, we need to define the _data_, _parameters_, and _regularization_ we want to use. 
+Data objecs are defined with the `SphereData` construct, which takes  
+```julia 
+data = SphereData(times=times, directions=X, kappas=kappas, L=nothing)
 ```
-julia> ENV["PYTHON"] = read(`which python`, String)[1:end-1] # trim backspace
-julia> import Pkg; Pkg.build("PyCall")
-julia> exit()
+where `times` correspond to an array of the sampled times where we observed the three-dimensional vectors in `directions`. 
+We can further add an array `kappa` to specify uncertainty in the directions according to the Fisher distribution in the sphere. 
+
+It is possible to add different types of regularizations at the same time by specifying an array of the type `Regularization`, which specifies the type of regularization being used and the `diff_mode` that specifies the underlying automatic differentiation machinery being used to compute the gradients. 
+For example, we can add regulazition using finite differences as 
+```julia
+reg = [Regularization(order=1, power=2.0, λ=1e5, diff_mode=LuxNestedAD())]
+```
+Finally, the parameters include the regularization together with other customizable training parameters:
+```julia
+params = SphereParameters(tmin = 0, tmax = 100, 
+                          reg = reg,
+                          pretrain = false, 
+                          u0 = [0.0, 0.0, -1.0], ωmax = 2.0, 
+                          reltol = 1e-6, abstol = 1e-6,
+                          niter_ADAM = 5000, niter_LBFGS = 5000, 
+                          sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true))) 
+```
+Training is finally being done with 
+```julia
+using Random
+rng = Random.default_rng()
+Random.seed!(rng, 613)
+
+results = train(data, params, rng, nothing)
+```
+with `rng` a random seed used for the initial setup of the neural network. 
+
+The architecture of the neural network can be customized and pass directy before training as follows: 
+```julia
+init_bias(rng, in_dims) = LinRange(tspan[1], tspan[2], in_dims)
+init_weight(rng, out_dims, in_dims) = 0.1 * ones(out_dims, in_dims)
+
+# Customized neural network to similate weighted moving window in L
+U = Lux.Chain(
+    Lux.Dense(1, 200, rbf, init_bias=init_bias, init_weight=init_weight, use_bias=true),
+    Lux.Dense(200,10, gelu),
+    Lux.Dense(10, 3, Base.Fix2(sigmoid_cap, params.ωmax), use_bias=false)
+)
+
+results = train(data, params, rng, nothing, U)
+```
+We can finally save and plot the data: 
+```julia 
+results_dict = convert2dict(data, results)
+
+JLD2.@save "./results_dict.jld2" results_dict
+
+plot_sphere(data, results, -30., 0., saveas="plot.png", title="Results")
 ```
 
-You are ready to use Python from your Julia session!
+:books: We are working in a more complete documentation. Feel free to reach out in the meanwhile if you have any questions! 
+
+## SphereUDE integration with Python
+
+To make plots using Matplotlib, Cartopy, and PMagPy, `SphereUDE.jl` uses `CondaPkg.jl` and `PythonCall.jl` to execute Python code directly from Julia.
+This is done automatically once you install `SphereUDE.jl`, meaning that the first time you install `SphereUDE.jl` a conda environment linked to your Julia environmnet will be created and 
+linked to your Julia session. 
+From there, `SphereUDE.jl` will internally call the Python libraries without any further action. 
+
+## Contribute to the project! :wave:
+
+We encourage you to contribute to this package. If you are interested in contributing, there are many ways in which you can help build this:
+- :collision: **Report bugs in the code.** You can report problems with the code by oppening issues under the `Issues` tab in this repository. Please explain the problem you encounter and try to give a complete description of it so we can follow up on that.
+- :bulb: **Request new features and explanations.** If there is an important topic or example that you feel falls under the scope of this review and you would like us to include it, please request it! We are looking for new insights into what the community wants to learn.
+
+## Contact 
+
+If you have any questions or want to reach out, feel free to send us an email to `sapienza@stanford.edu`.
