@@ -4,6 +4,12 @@
 [![codecov](https://codecov.io/gh/ODINN-SciML/SphereUDE.jl/graph/badge.svg?token=UC0KFSUU3X)](https://codecov.io/gh/ODINN-SciML/SphereUDE.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## ⚠️ New preprint available! 📖 ⚠️
+
+The paper is now available as a preprint: https://www.authorea.com/users/589727/articles/1265456-spherical-path-regression-through-universal-differential-equations-with-applications-to-paleomagnetism
+
+---
+
 SphereUDE.jl is a Julia package for non-parametric regression of data supported in three-dimensional spheres. 
 It implements a simple universal differential equation (UDE) that naturally constrains trajectories to lie on the surface of a sphere. 
 This has an important application in Paleomagnetism, where the objective is to fit Apparent Polar Wander Paths (APWPs) to reconstruct continents' past motion. 
