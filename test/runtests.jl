@@ -1,3 +1,5 @@
+using Revise
+
 using SphereUDE
 using Test
 using Lux
@@ -6,6 +8,8 @@ include("constructors.jl")
 include("utils.jl")
 include("rotation.jl")
 include("python.jl")
+
+@testset "Run all tests" begin
 
 @testset "Constructors" begin
     test_reg_constructor()
@@ -25,4 +29,6 @@ end
 
 @testset "Inversion" begin
     test_single_rotation()
+end
+
 end

@@ -20,8 +20,8 @@ function test_single_rotation()
     times_samples = sort(rand(sampler(Uniform(tspan[1], tspan[2])), N_samples))
 
     # Expected maximum angular deviation in one unit of time (degrees)
-    Δω₀ = 1.0   
-    # Angular velocity 
+    Δω₀ = 1.0
+    # Angular velocity
     ω₀ = Δω₀ * π / 180.0
 
     # Create simple example
@@ -36,16 +36,16 @@ function test_single_rotation()
 
     data = SphereData(times=times_samples, directions=X, kappas=nothing, L=nothing)
 
-    regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=FiniteDifferences(1e-6)),  
+    regs = [Regularization(order=1, power=1.0, λ=0.1, diff_mode=FiniteDifferences(1e-6)),
             Regularization(order=0, power=2.0, λ=0.001, diff_mode=nothing)]
 
-    params = SphereParameters(tmin = tspan[1], tmax = tspan[2], 
-                            reg = regs, 
+    params = SphereParameters(tmin = tspan[1], tmax = tspan[2],
+                            reg = regs,
                             train_initial_condition = false,
-                            multiple_shooting = false, 
+                            multiple_shooting = false,
                             u0 = [0.0, 0.0, -1.0], ωmax = ω₀, reltol = 1e-12, abstol = 1e-12,
-                            niter_ADAM = 201, niter_LBFGS = 201, 
-                            sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true))) 
+                            niter_ADAM = 201, niter_LBFGS = 201, verbose_step=50,
+                            sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)))
 
     results = train(data, params, rng, nothing, nothing)
 

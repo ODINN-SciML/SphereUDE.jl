@@ -3,17 +3,17 @@ export train
 """
     train()
 
-Training function. 
+Training function.
 """
 function train(data::AD,
                params::AP,
-               rng, 
+               rng,
                θ_trained=[],
                model::Union{Chain, Nothing}=nothing) where {AD <: AbstractData, AP <: AbstractParameters}
 
-    # Raise warnings 
+    # Raise warnings
     raise_warnings(data::AD, params::AP)
-    
+
     # Set Neural Network
     if isnothing(model)
         U = get_default_NN(params, rng, θ_trained)
@@ -29,35 +29,16 @@ function train(data::AD,
         β = ComponentVector{Float64}(θ=θ)
     end
 
-    # Function to predict angular momentum. Used just for ODE part 
-    # of the loss function
-    function predict_L(t, NN, θ, st)
-        smodel = StatefulLuxLayer{true}(NN, θ, st)
-        return smodel([t]) 
-    end
+    # Closure of the ODE update for solve
+    ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
 
-    # Sphere-constrained ODE
-    function ude_rotation!(du, u, p, t)
-        # Angular momentum given by network prediction
-        L = predict_L(t, U, p, st)
-        du .= cross(L, u)
-    end
-
-    global prob_nn = ODEProblem(ude_rotation!, params.u0, [params.tmin, params.tmax], β.θ)
+    global prob_nn = ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
 
     ### Callback
     losses = Float64[]
-    callback = function (p, l)
-        push!(losses, l)
-        if length(losses) % 100 == 0
-            _, l_dict =  f_loss(p.u)
-            @printf "Iteration: [%5d / %5d] \t Loss: %.9f    =    Empirical: %.9f   +   Regularization: %.9f \n" length(losses) (params.niter_ADAM+params.niter_LBFGS) sum(values(l_dict)) l_dict["Empirical"] (sum(values(l_dict))-l_dict["Empirical"])
-        end
-        if params.train_initial_condition
-            p.u.u0 ./= norm(p.u.u0)
-        end 
-        return false
-    end
+    callback_print_closure(p,l) = callback_print(p, l, params, losses, f_loss)
+    callback_proj_closure(p,l) = callback_proj(p, l, params)
+    callback(p, l) = CallbackOptimizationSet(p, l; callbacks=(callback_print_closure, callback_proj_closure))
 
     # Dispatch the right loss function
     if params.multiple_shooting
@@ -66,7 +47,7 @@ function train(data::AD,
     else
         f_loss(β) = loss(β, data, params, U, st)
     end
-    
+
     """
     Pretraining to find parameters without impossing regularization
     """
@@ -74,13 +55,12 @@ function train(data::AD,
         losses_pretrain = Float64[]
         callback_pretrain = function(p, l)
             push!(losses_pretrain, l)
-            if length(losses_pretrain) % 100 == 0
+            if length(losses_pretrain) % params.verbose_step == 0
                 @printf "[Pretrain with no regularization] Iteration: [%5d / %5d] \t Loss: %.9f \n" length(losses_pretrain) (params.niter_ADAM+params.niter_LBFGS) losses_pretrain[end]
-                # println("[Pretrain with no regularization] Current loss after $(length(losses_pretrain)) iterations: $(losses_pretrain[end])")
             end
             return false
         end
-        # Define the loss function with just empirical component 
+        # Define the loss function with just empirical component
         f_loss_empirical(β) = loss_empirical(β, data, params)
         optf₀ = Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
         optprob₀ = Optimization.OptimizationProblem(optf₀, β)
@@ -90,15 +70,15 @@ function train(data::AD,
         β = res₁.u
     end
 
-    println("Loss after initalization: ", f_loss(β)[1])
-
+    @info "Start optimization with ADAM"
     optf = Optimization.OptimizationFunction((x, β) -> (first ∘ f_loss)(x), params.adtype)
     optprob = Optimization.OptimizationProblem(optf, β)
 
     res1 = Optimization.solve(optprob, ADAM(), callback=callback, maxiters=params.niter_ADAM, verbose=true)
-    println("Training loss after $(length(losses)) iterations: $(losses[end])")
+    @info "Training loss after $(length(losses)) iterations: $(losses[end])"
 
     if params.niter_LBFGS > 0
+        @info "Start optimization with LBFGS"
         optprob2 = Optimization.OptimizationProblem(optf, res1.u)
         # res2 = Optimization.solve(optprob2, Optim.LBFGS(), callback=callback, maxiters=params.niter_LBFGS) #, reltol=1e-6)
         res2 = Optimization.solve(optprob2, Optim.BFGS(; initial_stepnorm=0.01, linesearch=LineSearches.BackTracking()), callback=callback, maxiters=params.niter_LBFGS) #, reltol=1e-6)
@@ -116,9 +96,9 @@ function train(data::AD,
         u0_trained = Array(β_trained.u0) # β.u0 is a view type
     else
         u0_trained = params.u0
-    end 
+    end
 
-    # Final Fit 
+    # Final Fit
     fit_times = collect(range(params.tmin,params.tmax, length=1000))
     fit_directions = predict(β_trained, params, fit_times)
     fit_rotations = reduce(hcat, (t -> predict_L(t, U, β_trained.θ, st)).(fit_times))
@@ -128,6 +108,6 @@ function train(data::AD,
     pretty_table(loss_dict, sortkeys=true, header=["Loss term", "Value"])
 
     return Results(θ=θ_trained, u0=u0_trained, U=U, st=st,
-                   fit_times=fit_times, fit_directions=fit_directions, 
+                   fit_times=fit_times, fit_directions=fit_directions,
                    fit_rotations=fit_rotations, losses=losses)
 end

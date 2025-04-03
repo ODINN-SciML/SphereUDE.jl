@@ -32,6 +32,7 @@ Training parameters
     sensealg::SciMLBase.AbstractAdjointSensitivityAlgorithm = QuadratureAdjoint(autojacvec=ReverseDiffVJP(true))
     pretrain::Bool = false
     hyperparameter_balance::Bool = false
+    verbose_step::I = 100
 end
 
 """
