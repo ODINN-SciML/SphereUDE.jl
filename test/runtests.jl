@@ -31,4 +31,8 @@ end
     test_single_rotation()
 end
 
+@testset "Inversion with repeat times" begin
+    test_single_rotation(repeat_times=true)
+end
+
 end

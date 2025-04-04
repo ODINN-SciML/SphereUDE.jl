@@ -1,15 +1,13 @@
 export SphereParameters, AbstractParameters
-export SphereData, AbstractData
 export Results, AbstractResult
 export Regularization, AbstractRegularization
 export FiniteDifferences, ComplexStepDifferentiation, LuxNestedAD, AbstractDifferentiation
 export CubicSplinesRegularization
 
 abstract type AbstractParameters end
-abstract type AbstractData end
 abstract type AbstractRegularization end
 abstract type AbstractResult end
-abstract type AbstractDifferentiation end 
+abstract type AbstractDifferentiation end
 
 """
 Training parameters
@@ -23,6 +21,7 @@ Training parameters
     train_initial_condition::Bool = false
     multiple_shooting::Bool = false
     niter_ADAM::I = 2000
+    ADAM_learning_rate::F = 0.001
     niter_LBFGS::I = 2000
     reltol::F = 1e-6
     abstol::F = 1e-6
@@ -35,15 +34,15 @@ Training parameters
     verbose_step::I = 100
 end
 
-"""
-Spherical data information. 
-"""
-@kwdef struct SphereData{F <: AbstractFloat} <: AbstractData
-    times::Vector{F}
-    directions::Matrix{F}
-    kappas::Union{Vector{F}, Nothing}
-    L::Union{Function, Nothing}
-end
+# """
+# Spherical data information. 
+# """
+# @kwdef struct SphereData{F <: AbstractFloat} <: AbstractData
+#     times::Vector{F}
+#     directions::Matrix{F}
+#     kappas::Union{Vector{F}, Nothing}
+#     L::Union{Function, Nothing}
+# end
 
 """
 Final results

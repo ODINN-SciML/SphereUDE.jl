@@ -10,6 +10,7 @@ export convert2dict
 export get_default_NN
 export fisher_mean
 export CallbackOptimizationSet, callback_print
+export MakeVectorUnique
 
 # Import activation function for complex extension
 import Lux: relu, gelu
@@ -255,9 +256,9 @@ end
 Raise warnings.
 """
 function raise_warnings(data::SphereData, params::SphereParameters)
-    if length(unique(data.times)) < length(data.times)
-        @warn "[SphereUDE] Timeseries includes duplicated times. \n This can produce unexpected errors." 
-    end
+    # if length(unique(data.times)) < length(data.times)
+    #     @warn "[SphereUDE] Timeseries includes duplicated times. \n This can produce unexpected errors."
+    # end
     # if !isnothing(params.reg)
     #     for reg in params.reg  
     #         if reg.diff_mode=="CS"
@@ -354,4 +355,25 @@ function printProgressLoss(iter, total_iters, loss, loss_emp, loss_reg, improvem
         end
     end
     println("")
+end
+
+"""
+     MakeVectorUnique(v::Vector)
+
+Tool to avoid repetition of times in the forward/reverse ODE calculation
+"""
+function MakeVectorUnique(v::Vector)
+    @assert v == sort(v)
+    vector_unique = [v[1]]
+    inverse_unique = Int64[1]
+    counter = 1
+    for i in 2:length(v)
+        if v[i] != v[i-1]
+            push!(vector_unique, v[i])
+            counter += 1
+        end
+        push!(inverse_unique, counter)
+    end
+    @assert vector_unique[inverse_unique] == v
+    return vector_unique, inverse_unique
 end

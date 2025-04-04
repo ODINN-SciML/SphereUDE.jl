@@ -12,7 +12,7 @@ function loss(β::ComponentVector,
               params::AP,
               U::Chain, 
               st::NamedTuple) where {AD <: AbstractData, AP <: AbstractParameters}
-    
+
     # Record the value of each individual loss to the total loss function for hyperparameter selection.
     loss_dict = Dict()
 
@@ -24,11 +24,11 @@ function loss(β::ComponentVector,
         # @ignore_derivatives l_emp /= l_emp
         l_emp = log(l_emp)
     end
-    
+
     # Regularization
     l_reg = 0.0
     if !isnothing(params.reg)
-        for reg in params.reg   
+        for reg in params.reg
             if typeof(reg) <: Regularization
                 reg₀ = regularization(β.θ, U, st, reg, params)
                 loss_dict["Regularization (order=$(reg.order), power=$(reg.power))"] = reg₀
@@ -43,8 +43,8 @@ function loss(β::ComponentVector,
                 reg₀ = log(reg₀)
                 # @ignore_derivatives reg₀ /= reg₀
             end
-            l_reg += reg₀              
-        end 
+            l_reg += reg₀
+        end
     end
     return l_emp + l_reg, loss_dict
 end
@@ -52,12 +52,17 @@ end
 """
 Empirical loss function
 """
-function loss_empirical(β::ComponentVector, 
-                        data::AD, 
+function loss_empirical(β::ComponentVector,
+                        data::AD,
                         params::AP) where {AD <: AbstractData, AP <: AbstractParameters}
 
     # Predict trajectory on times associated to dataset
-    u_ = predict(β, params, data.times)
+    if data.repeat_times
+        u_unique = predict(β, params, data.times_unique)
+        u_ = u_unique[:, data.times_unique_inverse]
+    else
+        u_ = predict(β, params, data.times)
+    end
 
     # Empirical error
     if isnothing(data.kappas)
@@ -77,7 +82,7 @@ Empirical Prediction function
 function predict(β::ComponentVector,
                  params::AP,
                  T::Vector) where {AP <: AbstractParameters} 
-    
+
     if params.train_initial_condition
         _prob = remake(prob_nn, u0=β.u0 / norm(β.u0), # We enforce the norm=1 condition again here
                        tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
@@ -93,13 +98,13 @@ function predict(β::ComponentVector,
                 abstol=params.abstol, reltol=params.reltol,
                 sensealg=params.sensealg, 
                 dtmin=1e-4 * (params.tmax - params.tmin), force_dtmin=true) 
-    
+
     # If numerical integration fails or bad choice of parameter, return infinity
     if sol.retcode != :Success
         @warn "[SphereUDE] Numerical solver not converging. This can be causes by numerical innestabilities around a bad choice of parameter. This can be due to just a bad initial condition of the neural network, so it is worth changing the randon number used for initialization. "
         return Inf
     end
-    
+
     return Array(sol)
 end
 

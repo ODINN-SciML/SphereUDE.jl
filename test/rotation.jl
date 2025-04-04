@@ -10,14 +10,21 @@ Random.seed!(rng, 666)
 ###############  Simulation of Simple Rotation ###############
 ##############################################################
 
-function test_single_rotation()
+function test_single_rotation(;repeat_times=false)
 
     # Total time simulation
     tspan = [0, 160.0]
     # Number of sample points
     N_samples = 10
     # Times where we sample points
-    times_samples = sort(rand(sampler(Uniform(tspan[1], tspan[2])), N_samples))
+    random_times = rand(sampler(Uniform(tspan[1], tspan[2])), N_samples)
+    if repeat_times
+        # We repeat a few ages
+        random_times[end] = random_times[1]
+        random_times[end-1] = random_times[1]
+        random_times[end-2] = random_times[2]
+    end
+    times_samples = sort(random_times)
 
     # Expected maximum angular deviation in one unit of time (degrees)
     Δω₀ = 1.0

@@ -64,7 +64,7 @@ function train(data::AD,
         f_loss_empirical(β) = loss_empirical(β, data, params)
         optf₀ = Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
         optprob₀ = Optimization.OptimizationProblem(optf₀, β)
-        res₀ = Optimization.solve(optprob₀, ADAM(), callback=callback_pretrain, maxiters=params.niter_ADAM, verbose=false)
+        res₀ = Optimization.solve(optprob₀, ADAM(params.ADAM_learning_rate), callback=callback_pretrain, maxiters=params.niter_ADAM, verbose=false)
         optprob₁ = Optimization.OptimizationProblem(optf₀, res₀.u)
         res₁ = Optimization.solve(optprob₁, Optim.BFGS(; initial_stepnorm=0.01, linesearch=LineSearches.BackTracking()), callback=callback_pretrain, maxiters=params.niter_LBFGS)
         β = res₁.u
@@ -74,7 +74,7 @@ function train(data::AD,
     optf = Optimization.OptimizationFunction((x, β) -> (first ∘ f_loss)(x), params.adtype)
     optprob = Optimization.OptimizationProblem(optf, β)
 
-    res1 = Optimization.solve(optprob, ADAM(), callback=callback, maxiters=params.niter_ADAM, verbose=true)
+    res1 = Optimization.solve(optprob, ADAM(params.ADAM_learning_rate), callback=callback, maxiters=params.niter_ADAM, verbose=true)
     @info "Training loss after $(length(losses)) iterations: $(losses[end])"
 
     if params.niter_LBFGS > 0

@@ -18,6 +18,9 @@ using PrettyTables, Printf
 # Debugging
 using Infiltrator
 
+# Data Types
+include("Data/SphereData.jl")
+
 include("types.jl")
 include("utils.jl")
 include("losses.jl")
