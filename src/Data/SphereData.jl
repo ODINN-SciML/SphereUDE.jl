@@ -5,7 +5,7 @@ abstract type AbstractData end
 """
 Spherical data information.
 """
-mutable struct SphereData{F<:AbstractFloat, IN<:Union{Integer, Nothing}} <: AbstractData
+mutable struct SphereData{F<:AbstractFloat,IN<:Union{Integer,Nothing}} <: AbstractData
     times::Vector{F}
     directions::Matrix{F}
     kappas::Union{Vector{F},Nothing}
@@ -41,6 +41,7 @@ function SphereData(;
         kappas,
         L,
         repeat_times,
-        times_unique,times_unique_inverse
+        times_unique,
+        times_unique_inverse,
     )
 end

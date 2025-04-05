@@ -10,7 +10,7 @@ function loss(
     data::AD,
     params::AP,
     U::Chain,
-    st::NamedTuple
+    st::NamedTuple,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Record the value of each individual loss to the total loss function for hyperparameter selection.
@@ -55,7 +55,7 @@ Empirical loss function
 function loss_empirical(
     β::ComponentVector,
     data::AD,
-    params::AP
+    params::AP,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Predict trajectory on times associated to dataset
@@ -81,25 +81,21 @@ end
 """
 Empirical Prediction function
 """
-function predict(
-    β::ComponentVector,
-    params::AP,
-    T::Vector
-) where {AP<:AbstractParameters}
+function predict(β::ComponentVector, params::AP, T::Vector) where {AP<:AbstractParameters}
 
     if params.train_initial_condition
         _prob = remake(
             prob_nn,
             u0 = β.u0 / norm(β.u0), # We enforce the norm=1 condition again here
             tspan = (min(T[1], params.tmin), max(T[end], params.tmax)),
-            p = β.θ
+            p = β.θ,
         )
     else
         _prob = remake(
             prob_nn,
             u0 = params.u0,
             tspan = (min(T[1], params.tmin), max(T[end], params.tmax)),
-            p = β.θ
+            p = β.θ,
         )
     end
 
@@ -112,7 +108,7 @@ function predict(
         reltol = params.reltol,
         sensealg = params.sensealg,
         dtmin = 1e-4 * (params.tmax - params.tmin),
-        force_dtmin = true
+        force_dtmin = true,
     )
 
     # If numerical integration fails or bad choice of parameter, return infinity

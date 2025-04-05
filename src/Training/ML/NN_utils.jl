@@ -23,7 +23,7 @@ function get_default_NN(params::AP, rng, θ_trained) where {AP<:AbstractParamete
             Lux.Dense(10, 10, sigmoid),
             Lux.Dense(10, 10, sigmoid),
             Lux.Dense(10, 5, sigmoid),
-            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax))
+            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax)),
         )
     else
         U = Lux.Chain(
@@ -32,7 +32,7 @@ function get_default_NN(params::AP, rng, θ_trained) where {AP<:AbstractParamete
             Lux.Dense(10, 10, gelu),
             Lux.Dense(10, 10, gelu),
             Lux.Dense(10, 5, gelu),
-            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax))
+            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax)),
         )
     end
     return U

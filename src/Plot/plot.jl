@@ -15,24 +15,26 @@ Generate matplotlib grid template for figure
 """
 Create spherical figure with observations (points), latent variable, and fitter path.
 """
-function plot_sphere(# ax::PyCall.PyObject, 
-                     data::AbstractData,
-                     results::AbstractResult,
-                    #  X_points::Matrix{Float64}, 
-                    #  X_path::Matrix{Float64}, 
-                     central_latitude::Float64, 
-                     central_longitude::Float64;
-                     saveas::Union{String, Nothing},
-                     title::String, 
-                     matplotlib_rcParams::Union{Dict, Nothing} = nothing)
+function plot_sphere(
+    # ax::PyCall.PyObject,
+    data::AbstractData,
+    results::AbstractResult,
+    #  X_points::Matrix{Float64},
+    #  X_path::Matrix{Float64}
+    central_latitude::Float64,
+    central_longitude::Float64;
+    saveas::Union{String,Nothing},
+    title::String,
+    matplotlib_rcParams::Union{Dict,Nothing}=nothing
+)
 
     # cmap = mpl_colormap.get_cmap("viridis")
 
-    plt[].figure(figsize = (10,10))
+    plt[].figure(figsize = (10, 10))
     ax = plt[].axes(
         projection = ccrs[].Orthographic(
-            central_latitude=central_latitude,
-            central_longitude=central_longitude,
+            central_latitude = central_latitude,
+            central_longitude = central_longitude,
         ),
     )
 
@@ -49,22 +51,30 @@ function plot_sphere(# ax::PyCall.PyObject,
     ax.gridlines()
     ax.set_global()
 
-    X_true_points = cart2sph(data.directions, radians=false)
+    X_true_points = cart2sph(data.directions, radians = false)
     # X_true_path = cart2sph(X_path, radians=false)
-    X_fit_path = cart2sph(results.fit_directions, radians=false)
+    X_fit_path = cart2sph(results.fit_directions, radians = false)
 
     # Plots in Python follow the long, lat ordering 
 
-    sns[].scatterplot(ax=ax, x = X_true_points[2,:], y=X_true_points[1, :],
-                      hue = data.times, s=150,
-                      palette="viridis",
-                      transform = ccrs[].PlateCarree());
+    sns[].scatterplot(
+        ax=ax,
+        x = X_true_points[2, :],
+        y = X_true_points[1, :],
+        hue = data.times,
+        s=150,
+        palette="viridis",
+        transform = ccrs[].PlateCarree(),
+    );
 
     for i in 1:(length(results.fit_times)-1)
-        plt[].plot([X_fit_path[2,i], X_fit_path[2,i+1]],
-                   [X_fit_path[1,i], X_fit_path[1,i+1]],
-                    linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
-                    transform = ccrs[].Geodetic())
+        plt[].plot(
+            [X_fit_path[2, i], X_fit_path[2, i + 1]],
+            [X_fit_path[1, i], X_fit_path[1,i + 1]],
+            linewidth = 2,
+            color = "black",
+            transform = ccrs[].Geodetic(),
+        )
     end
     # plt.title(title, fontsize=20)
     if !isnothing(saveas)
@@ -78,17 +88,22 @@ end
 """
 Plot fitted rotation
 """
-function plot_L(data::AbstractData,
-                results::AbstractResult;
-                saveas::Union{String, Nothing},
-                title::String)
+function plot_L(
+    data::AbstractData,
+    results::AbstractResult;
+    saveas::Union{String, Nothing},
+    title::String,
+)
 
-    fig, ax = plt[].subplots(figsize=(10,5))
+    fig, ax = plt[].subplots(figsize=(10, 5))
 
     times_smooth = collect(LinRange(results.fit_times[begin], results.fit_times[end], 1000))
-    Ls = reduce(hcat, (t -> results.U([t], results.θ, results.st)[1]).(times_smooth))
+    Ls = reduce(
+        hcat,
+        (t -> results.U([t], results.θ, results.st)[1]).(times_smooth)
+    )
 
-    angular_velocity = mapslices(x -> norm(x), Ls, dims=1)[1,:]
+    angular_velocity = mapslices(x -> norm(x), Ls, dims=1)[1, :]
 
     ax.plot(times_smooth, angular_velocity, label="Estimated")
 

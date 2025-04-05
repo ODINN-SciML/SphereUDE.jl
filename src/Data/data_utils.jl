@@ -33,7 +33,8 @@ function sph2cart(X::AbstractArray{<:Number}; radians::Bool = true)
     Y = mapslices(
         x -> [cos(x[1]) * cos(x[2]), cos(x[1]) * sin(x[2]), sin(x[1])],
         X,
-        dims = 1)
+        dims = 1,
+    )
     return Y
 end
 
@@ -47,7 +48,7 @@ function fisher_mean(latitudes, longitudes; radians::Bool = true)
     Y = sph2cart(hcat(latitudes, longitudes)', radians = radians)
     Ŷ = mean(Y, dims = 2)
     Ŷ ./= norm(Ŷ)
-    return cart2sph(Ŷ, radians=radians)
+    return cart2sph(Ŷ, radians = radians)
 end
 
 
@@ -65,12 +66,13 @@ abstract type AbstractNoise end
     kappa::Union{F,Vector{F}}
 end
 
-function Base.:(+)(X::Array{F,2}, ϵ::N) where {F<:AbstractFloat, N<:AbstractNoise}
+function Base.:(+)(X::Array{F,2}, ϵ::N) where {F<:AbstractFloat,N<:AbstractNoise}
     if typeof(ϵ.kappa) <: F
         return mapslices(
-            x -> rand(sampler(VonMisesFisher(x/norm(x), ϵ.kappa)), 1),
+            x -> rand(sampler(VonMisesFisher(x / norm(x), ϵ.kappa)), 1),
             X,
-            dims = 1)
+            dims = 1,
+        )
     else
         @assert length(ϵ.kappa) == size(X)[2] "Signal and noise must have same dimensions."
         Y = similar(X)

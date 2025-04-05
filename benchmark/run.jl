@@ -51,20 +51,20 @@ regularization_types = [
 params_benchmark = []
 for regs in regularization_types
     params = SphereParameters(
-            tmin = tspan[1],
-            tmax = tspan[2],
-            reg = regs,
-            train_initial_condition = false,
-            multiple_shooting = false,
-            u0 = [0.0, 0.0, -1.0],
-            ωmax = ω₀,
-            reltol = 1e-12,
-            abstol = 1e-12,
-            niter_ADAM = 11,
-            niter_LBFGS = 0,
-            verbose=false,
-            sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true))
-        )
+        tmin = tspan[1],
+        tmax = tspan[2],
+        reg = regs,
+        train_initial_condition = false,
+        multiple_shooting = false,
+        u0 = [0.0, 0.0, -1.0],
+        ωmax = ω₀,
+        reltol = 1e-12,
+        abstol = 1e-12,
+        niter_ADAM = 11,
+        niter_LBFGS = 0,
+        verbose = false,
+        sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
+    )
     push!(params_benchmark, params)
 end
 
