@@ -67,7 +67,7 @@ function plot_sphere(
         transform = ccrs[].PlateCarree(),
     )
 
-    for i = 1:(length(results.fit_times) - 1)
+    for i = 1:(length(results.fit_times)-1)
         plt[].plot(
             [X_fit_path[2, i], X_fit_path[2, i+1]],
             [X_fit_path[1, i], X_fit_path[1, i+1]],
