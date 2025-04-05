@@ -58,7 +58,7 @@ function plot_sphere(
     # Plots in Python follow the long, lat ordering 
 
     sns[].scatterplot(
-        ax=ax,
+        ax = ax,
         x = X_true_points[2, :],
         y = X_true_points[1, :],
         hue = data.times,
