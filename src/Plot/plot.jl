@@ -65,7 +65,7 @@ function plot_sphere(
         s = 150,
         palette = "viridis",
         transform = ccrs[].PlateCarree(),
-    );
+    )
 
     for i in 1:(length(results.fit_times)-1)
         plt[].plot(
