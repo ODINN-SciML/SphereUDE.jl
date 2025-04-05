@@ -4,9 +4,9 @@ export plot_sphere, plot_L
 """
 Generate matplotlib grid template for figure
 """
-# function generate_sphere_figure(grid::Tuple{Number, Number}, 
+# function generate_sphere_figure(grid::Tuple{Number, Number},
 #                                 size::Tuple{Number, Number})
-#                                 # central_latitude::Number, 
+#                                 # central_latitude::Number,
 #                                 # central_longitude::Number)
 #     fig, axes = plt.subplots(nrows=grid[1], ncols=grid[2], figsize=size)
 #     return fig, axes
@@ -52,7 +52,6 @@ function plot_sphere(
     ax.set_global()
 
     X_true_points = cart2sph(data.directions, radians = false)
-    # X_true_path = cart2sph(X_path, radians=false)
     X_fit_path = cart2sph(results.fit_directions, radians = false)
 
     # Plots in Python follow the long, lat ordering
@@ -122,5 +121,3 @@ function plot_L(
 
     return nothing
 end
-
-
