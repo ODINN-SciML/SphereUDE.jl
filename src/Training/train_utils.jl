@@ -24,8 +24,8 @@ function callback_print(p, l, params, losses, f_loss)
     end
     step = params.verbose_step
     if length(losses) % step == 0 || length(losses) == 1
-        _, l_dict =  f_loss(p.u)
-        if length(losses) < step+1
+        _, l_dict = f_loss(p.u)
+        if length(losses) < step + 1
             improvement = nothing
         else
             improvement = (losses[end]-losses[end-step]) / losses[end-step]
