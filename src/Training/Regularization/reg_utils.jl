@@ -9,7 +9,7 @@ function regularization(
     U::Chain,
     st::NamedTuple,
     reg::Regularization,
-    params::AP
+    params::AP,
 ) where {AP<:AbstractParameters}
 
     # Define Statefull Lux NN
