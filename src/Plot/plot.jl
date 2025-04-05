@@ -62,8 +62,8 @@ function plot_sphere(
         x = X_true_points[2, :],
         y = X_true_points[1, :],
         hue = data.times,
-        s=150,
-        palette="viridis",
+        s = 150,
+        palette = "viridis",
         transform = ccrs[].PlateCarree(),
     );
 
