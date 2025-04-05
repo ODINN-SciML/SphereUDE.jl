@@ -28,7 +28,7 @@ function callback_print(p, l, params, losses, f_loss)
         if length(losses) < step + 1
             improvement = nothing
         else
-            improvement = (losses[end]-losses[end-step]) / losses[end-step]
+            improvement = (losses[end] - losses[end-step]) / losses[end-step]
         end
         @assert losses[end] ≈ sum(values(l_dict))
         printProgressLoss(length(losses), (params.niter_ADAM+params.niter_LBFGS), losses[end], l_dict["Empirical"], (sum(values(l_dict))-l_dict["Empirical"]), improvement)
