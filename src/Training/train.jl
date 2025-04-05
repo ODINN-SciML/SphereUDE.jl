@@ -137,7 +137,7 @@ function train(
     _, loss_dict = f_loss(β_trained)
     if params.verbose
         println("Final training loss after $(length(losses)) iterations: $(losses[end])")
-        pretty_table(loss_dict, sortkeys=true, header=["Loss term", "Value"])
+        pretty_table(loss_dict, sortkeys = true, header = ["Loss term", "Value"])
     end
 
     return Results(
