@@ -32,7 +32,10 @@ function plot_sphere(
 
     plt[].figure(figsize = (10, 10))
     ax = plt[].axes(
-        projection = ccrs[].Orthographic(central_latitude = central_latitude, central_longitude = central_longitude),
+        projection = ccrs[].Orthographic(
+            central_latitude = central_latitude,
+            central_longitude = central_longitude,
+        ),
     )
 
     # Set default plot parameters. 
