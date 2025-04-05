@@ -36,10 +36,7 @@ function cubic_regularization(
             throw("Method for AD backend no implemented.")
         end
 
-        L_cross_u = [
-            cross(Jac[:, 1, j], u_[:, j])
-            for j = 1:params.n_quadrature
-        ]
+        L_cross_u = [cross(Jac[:, 1, j], u_[:, j]) for j = 1:params.n_quadrature]
 
     elseif typeof(reg.diff_mode) <: FiniteDifferences
         L_ = [central_fdm(τ -> smodel([τ]), t, reg.diff_mode.ϵ) for t in nodes]
