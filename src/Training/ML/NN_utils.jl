@@ -103,7 +103,7 @@ function relu_cap(z::Complex, min_value::Float64, max_value::Float64)
     return min_value + (max_value - min_value) * relu(z - relu(z - 1))
 end
 
-""" 
+"""
     sigmoid(z::Complex)
 """
 function sigmoid(z::Complex)
