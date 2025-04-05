@@ -40,8 +40,8 @@ function train(
 
     ### Callback
     losses = Float64[]
-    callback_print_closure(p,l) = callback_print(p, l, params, losses, f_loss)
-    callback_proj_closure(p,l) = callback_proj(p, l, params)
+    callback_print_closure(p, l) = callback_print(p, l, params, losses, f_loss)
+    callback_proj_closure(p, l) = callback_proj(p, l, params)
     callback(p, l) = CallbackOptimizationSet(
         p,
         l;
