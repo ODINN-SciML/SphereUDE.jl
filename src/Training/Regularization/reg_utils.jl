@@ -23,7 +23,7 @@ function regularization(
             t -> norm(smodel([t]))^reg.power,
             params.tmin,
             params.tmax,
-            params.n_quadrature
+            params.n_quadrature,
         )
 
     elseif reg.order == 1
