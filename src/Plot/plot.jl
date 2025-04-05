@@ -91,7 +91,7 @@ Plot fitted rotation
 function plot_L(
     data::AbstractData,
     results::AbstractResult;
-    saveas::Union{String, Nothing},
+    saveas::Union{String,Nothing},
     title::String,
 )
 
