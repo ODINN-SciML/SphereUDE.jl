@@ -67,7 +67,7 @@ function regularization(
                         t -> norm(central_fdm(τ -> smodel([τ]), t, 1e-5))^reg.power,
                         params.tmin,
                         params.tmax,
-                        params.n_quadrature
+                        params.n_quadrature,
                     )
                     if abs(l_AD - l_FD) > 1e-2 * abs(l_FD)
                         @warn "[SphereUDE] Nested AD is giving significant different results than Finite Differences."
