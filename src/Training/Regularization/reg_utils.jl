@@ -45,7 +45,7 @@ function regularization(
                 Jac = batched_jacobian(
                     smodel,
                     AutoZygote(),
-                    reshape(nodes, 1, params.n_quadrature)
+                    reshape(nodes, 1, params.n_quadrature),
                 )
             else
                 throw("Method for AD backend no implemented.")
