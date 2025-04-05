@@ -102,7 +102,7 @@ function plot_L(
 
     angular_velocity = mapslices(x -> norm(x), Ls, dims = 1)[1, :]
 
-    ax.plot(times_smooth, angular_velocity, label="Estimated")
+    ax.plot(times_smooth, angular_velocity, label = "Estimated")
 
     if !isnothing(data.L)
         Ls_true = reduce(hcat, data.L.(times_smooth))
