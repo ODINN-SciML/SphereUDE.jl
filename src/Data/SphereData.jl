@@ -5,22 +5,22 @@ abstract type AbstractData end
 """
 Spherical data information.
 """
-mutable struct SphereData{F <: AbstractFloat, IN <: Union{Integer, Nothing}} <: AbstractData
+mutable struct SphereData{F<:AbstractFloat, IN<:Union{Integer, Nothing}} <: AbstractData
     times::Vector{F}
     directions::Matrix{F}
-    kappas::Union{Vector{F}, Nothing}
-    L::Union{Function, Nothing}
+    kappas::Union{Vector{F},Nothing}
+    L::Union{Function,Nothing}
     repeat_times::Bool
-    times_unique::Union{Vector{F}, Nothing}
-    times_unique_inverse::Union{Vector{IN}, Nothing}
+    times_unique::Union{Vector{F},Nothing}
+    times_unique_inverse::Union{Vector{IN},Nothing}
 end
 
 function SphereData(;
     times::Vector{F},
     directions::Matrix{F},
-    kappas::Union{Vector{F}, Nothing},
-    L::Union{Function, Nothing} = nothing,
-    ) where {F <: AbstractFloat}
+    kappas::Union{Vector{F},Nothing},
+    L::Union{Function,Nothing} = nothing,
+) where {F<:AbstractFloat}
 
     # Determine if data times are unique or not
     if length(unique(times)) < length(times)
@@ -35,5 +35,12 @@ function SphereData(;
     end
 
     ft = typeof(first(times))
-    return SphereData{ft, in}(times, directions, kappas, L, repeat_times, times_unique, times_unique_inverse)
+    return SphereData{ft,in}(
+        times,
+        directions,
+        kappas,
+        L,
+        repeat_times,
+        times_unique,times_unique_inverse
+    )
 end

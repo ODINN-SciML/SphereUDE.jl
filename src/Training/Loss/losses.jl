@@ -5,11 +5,13 @@ export loss_multiple_shooting
 """
 General Loss Function
 """
-function loss(β::ComponentVector,
-              data::AD,
-              params::AP,
-              U::Chain,
-              st::NamedTuple) where {AD <: AbstractData, AP <: AbstractParameters}
+function loss(
+    β::ComponentVector,
+    data::AD,
+    params::AP,
+    U::Chain,
+    st::NamedTuple
+) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Record the value of each individual loss to the total loss function for hyperparameter selection.
     loss_dict = Dict()
@@ -50,9 +52,11 @@ end
 """
 Empirical loss function
 """
-function loss_empirical(β::ComponentVector,
-                        data::AD,
-                        params::AP) where {AD <: AbstractData, AP <: AbstractParameters}
+function loss_empirical(
+    β::ComponentVector,
+    data::AD,
+    params::AP
+) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Predict trajectory on times associated to dataset
     if data.repeat_times
@@ -68,7 +72,7 @@ function loss_empirical(β::ComponentVector,
         return 3.0 * mean(abs2.(u_ .- data.directions))
         # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
     else
-        return mean(data.kappas .* sum(abs2.(u_ .- data.directions), dims=1))
+        return mean(data.kappas .* sum(abs2.(u_ .- data.directions), dims = 1))
         # l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
     end
 
@@ -77,25 +81,39 @@ end
 """
 Empirical Prediction function
 """
-function predict(β::ComponentVector,
-                 params::AP,
-                 T::Vector) where {AP <: AbstractParameters} 
+function predict(
+    β::ComponentVector,
+    params::AP,
+    T::Vector
+) where {AP<:AbstractParameters}
 
     if params.train_initial_condition
-        _prob = remake(prob_nn, u0=β.u0 / norm(β.u0), # We enforce the norm=1 condition again here
-                       tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
-                       p = β.θ)
+        _prob = remake(
+            prob_nn,
+            u0 = β.u0 / norm(β.u0), # We enforce the norm=1 condition again here
+            tspan = (min(T[1], params.tmin), max(T[end], params.tmax)),
+            p = β.θ
+        )
     else
-        _prob = remake(prob_nn, u0=params.u0, 
-                      tspan=(min(T[1], params.tmin), max(T[end], params.tmax)), 
-                      p = β.θ)
+        _prob = remake(
+            prob_nn,
+            u0 = params.u0,
+            tspan = (min(T[1], params.tmin), max(T[end], params.tmax)),
+            p = β.θ
+        )
     end
 
     # Force minimum step in case L(t) changes drastically due to bad behaviour of neural network
-    sol = solve(_prob, params.solver, saveat=T,
-                abstol=params.abstol, reltol=params.reltol,
-                sensealg=params.sensealg, 
-                dtmin=1e-4 * (params.tmax - params.tmin), force_dtmin=true) 
+    sol = solve(
+        _prob,
+        params.solver,
+        saveat = T,
+        abstol = params.abstol,
+        reltol = params.reltol,
+        sensealg = params.sensealg,
+        dtmin = 1e-4 * (params.tmax - params.tmin),
+        force_dtmin = true
+    )
 
     # If numerical integration fails or bad choice of parameter, return infinity
     if sol.retcode != :Success

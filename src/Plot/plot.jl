@@ -28,8 +28,13 @@ function plot_sphere(# ax::PyCall.PyObject,
 
     # cmap = mpl_colormap.get_cmap("viridis")
 
-    plt[].figure(figsize=(10,10))
-    ax = plt[].axes(projection=ccrs[].Orthographic(central_latitude=central_latitude, central_longitude=central_longitude))
+    plt[].figure(figsize = (10,10))
+    ax = plt[].axes(
+        projection = ccrs[].Orthographic(
+            central_latitude=central_latitude,
+            central_longitude=central_longitude,
+        ),
+    )
 
     # Set default plot parameters. 
     # See https://matplotlib.org/stable/users/explain/customizing.html for customizable optionsz
@@ -50,13 +55,13 @@ function plot_sphere(# ax::PyCall.PyObject,
 
     # Plots in Python follow the long, lat ordering 
 
-    sns[].scatterplot(ax=ax, x = X_true_points[2,:], y=X_true_points[1, :], 
+    sns[].scatterplot(ax=ax, x = X_true_points[2,:], y=X_true_points[1, :],
                       hue = data.times, s=150,
                       palette="viridis",
                       transform = ccrs[].PlateCarree());
 
     for i in 1:(length(results.fit_times)-1)
-        plt[].plot([X_fit_path[2,i], X_fit_path[2,i+1]], 
+        plt[].plot([X_fit_path[2,i], X_fit_path[2,i+1]],
                    [X_fit_path[1,i], X_fit_path[1,i+1]],
                     linewidth=2, color="black",#cmap(norm(results.fit_times[i])),
                     transform = ccrs[].Geodetic())
@@ -73,7 +78,7 @@ end
 """
 Plot fitted rotation
 """
-function plot_L(data::AbstractData, 
+function plot_L(data::AbstractData,
                 results::AbstractResult;
                 saveas::Union{String, Nothing},
                 title::String)
@@ -89,8 +94,8 @@ function plot_L(data::AbstractData,
 
     if !isnothing(data.L)
         Ls_true = reduce(hcat, data.L.(times_smooth))
-        angular_velocity_true = mapslices(x -> norm(x), Ls_true, dims=1)[1,:]
-        ax.plot(times_smooth, angular_velocity_true, label="Reference")
+        angular_velocity_true = mapslices(x -> norm(x), Ls_true, dims = 1)[1, :]
+        ax.plot(times_smooth, angular_velocity_true, label = "Reference")
     end
 
     # plt.title("")

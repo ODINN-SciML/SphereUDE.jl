@@ -17,8 +17,8 @@ function quadrature(t₀, t₁, n_quadrature::Int)
     #     nodes, weigths = gausslegendre(n_quadrature)
     #     # nodes .+ rand(sampler(Uniform(-0.1,0.1)), n_quadrature)
     # end
-    nodes = (t₀+t₁)/2 .+ nodes * (t₁-t₀)/2
-    weigths = (t₁-t₀) / 2 * weigths
+    nodes = (t₀ + t₁) / 2 .+ nodes * (t₁ - t₀) / 2
+    weigths = (t₁ - t₀) / 2 * weigths
     return nodes, weigths
 end
 
@@ -27,11 +27,11 @@ end
 
 Simple central differences implementation. 
 
-FiniteDifferences.jl does not work with AD so I implemented this manually. 
+FiniteDifferences.jl does not work with AD so I implemented this manually.
 Still remains to test this with FiniteDiff.jl
 """
 function central_fdm(f::Function, x::Float64, ϵ::Float64)
-    return (f(x+ϵ)-f(x-ϵ)) / (2ϵ) 
+    return (f(x + ϵ) - f(x - ϵ)) / (2ϵ)
 end
 
 """

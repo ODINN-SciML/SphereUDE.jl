@@ -12,27 +12,27 @@ using Lux: Chain
 
 Return a default neural network for those cases where NN has not being provided by user.
 """
-function get_default_NN(params::AP, rng, θ_trained) where {AP <: AbstractParameters}
+function get_default_NN(params::AP, rng, θ_trained) where {AP<:AbstractParameters}
     # Define default neural network
 
     # For L1 regularization relu_cap works better, but for L2 I think is better to include sigmoid
     if isL1reg(params.reg)
         U = Lux.Chain(
-            Lux.Dense(1,  5,  sigmoid), 
-            Lux.Dense(5,  10, sigmoid), 
-            Lux.Dense(10, 10, sigmoid), 
-            Lux.Dense(10, 10, sigmoid), 
-            Lux.Dense(10, 5,  sigmoid), 
-            Lux.Dense(5,  3,  Base.Fix2(sigmoid_cap, params.ωmax))
+            Lux.Dense(1, 5, sigmoid),
+            Lux.Dense(5, 10, sigmoid),
+            Lux.Dense(10, 10, sigmoid),
+            Lux.Dense(10, 10, sigmoid),
+            Lux.Dense(10, 5, sigmoid),
+            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax))
         )
     else
         U = Lux.Chain(
-            Lux.Dense(1,  5,  gelu), 
-            Lux.Dense(5,  10, gelu), 
-            Lux.Dense(10, 10, gelu), 
-            Lux.Dense(10, 10, gelu), 
-            Lux.Dense(10, 5,  gelu),
-            Lux.Dense(5,  3,  Base.Fix2(sigmoid_cap, params.ωmax))
+            Lux.Dense(1, 5, gelu),
+            Lux.Dense(5, 10, gelu),
+            Lux.Dense(10, 10, gelu),
+            Lux.Dense(10, 10, gelu),
+            Lux.Dense(10, 5, gelu),
+            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax))
         )
     end
     return U
@@ -47,11 +47,11 @@ Normalization of the neural network last layer
 """
 rbf(x) = exp.(-(x .^ 2))
 
-sigmoid_cap(x; ω₀=1.0) = sigmoid_cap(x, ω₀)
+sigmoid_cap(x; ω₀ = 1.0) = sigmoid_cap(x, ω₀)
 
 function sigmoid_cap(x, ω₀)
-    min_value = - ω₀
-    max_value = + ω₀
+    min_value = -ω₀
+    max_value = +ω₀
     return min_value + (max_value - min_value) * sigmoid(x)
 end
 
@@ -64,11 +64,11 @@ end
 """
     relu_cap(x; ω₀=1.0)
 """
-relu_cap(x; ω₀=1.0) = relu_cap(x, ω₀)
+relu_cap(x; ω₀ = 1.0) = relu_cap(x, ω₀)
 
 function relu_cap(x, ω₀)
-    min_value = - ω₀
-    max_value = + ω₀
+    min_value = -ω₀
+    max_value = +ω₀
     return relu_cap(x, min_value, max_value)
 end
 
@@ -89,9 +89,9 @@ function relu(z::Complex)
     return 0.5 * (1 + cos(angle(z))) * z
 end
 
-function relu_cap(z::Complex; ω₀=1.0)
-    min_value = - ω₀
-    max_value = + ω₀
+function relu_cap(z::Complex; ω₀ = 1.0)
+    min_value = -ω₀
+    max_value = +ω₀
     return relu_cap(z, min_value, max_value)
     # return min_value + (max_value - min_value) * relu(z - relu(z-1))
 end
@@ -100,14 +100,14 @@ end
     relu_cap(z::Complex, min_value::Float64, max_value::Float64)
 """
 function relu_cap(z::Complex, min_value::Float64, max_value::Float64)
-    return min_value + (max_value - min_value) * relu(z - relu(z-1))
+    return min_value + (max_value - min_value) * relu(z - relu(z - 1))
 end
 
 """ 
     sigmoid(z::Complex)
 """
 function sigmoid(z::Complex)
-    return 1.0 / ( 1.0 + exp(-z) )
+    return 1.0 / (1.0 + exp(-z))
 end
 
 """
@@ -118,5 +118,5 @@ We use the approximation using tanh() to avoid dealing with the complex error fu
 """
 function gelu(z::Complex)
     # We use the Gelu approximation to avoid complex holomorphic error function
-    return 0.5 * z * (1 + tanh((sqrt(2/π))*(z + 0.044715 * z^3)))
+    return 0.5 * z * (1 + tanh((sqrt(2 / π)) * (z + 0.044715 * z^3)))
 end

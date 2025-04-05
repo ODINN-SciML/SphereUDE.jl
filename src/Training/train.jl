@@ -5,11 +5,13 @@ export train
 
 Training function.
 """
-function train(data::AD,
-               params::AP,
-               rng,
-               θ_trained=[],
-               model::Union{Chain, Nothing}=nothing) where {AD <: AbstractData, AP <: AbstractParameters}
+function train(
+    data::AD,
+    params::AP,
+    rng,
+    θ_trained=[],
+    model::Union{Chain,Nothing}=nothing
+) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Raise warnings
     raise_warnings(data::AD, params::AP)
@@ -24,21 +26,26 @@ function train(data::AD,
 
     # Set component vector for Optimization
     if params.train_initial_condition
-        β = ComponentVector{Float64}(θ=θ, u0=params.u0)
+        β = ComponentVector{Float64}(θ = θ, u0 = params.u0)
     else
-        β = ComponentVector{Float64}(θ=θ)
+        β = ComponentVector{Float64}(θ = θ)
     end
 
     # Closure of the ODE update for solve
     ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
 
-    global prob_nn = ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
+    # global prob_nn =
+    #     ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
 
     ### Callback
     losses = Float64[]
     callback_print_closure(p,l) = callback_print(p, l, params, losses, f_loss)
     callback_proj_closure(p,l) = callback_proj(p, l, params)
-    callback(p, l) = CallbackOptimizationSet(p, l; callbacks=(callback_print_closure, callback_proj_closure))
+    callback(p, l) = CallbackOptimizationSet(
+        p,
+        l;
+        callbacks=(callback_print_closure, callback_proj_closure)
+    )
 
     # Dispatch the right loss function
     if params.multiple_shooting
@@ -74,14 +81,24 @@ function train(data::AD,
     optf = Optimization.OptimizationFunction((x, β) -> (first ∘ f_loss)(x), params.adtype)
     optprob = Optimization.OptimizationProblem(optf, β)
 
-    res1 = Optimization.solve(optprob, ADAM(params.ADAM_learning_rate), callback=callback, maxiters=params.niter_ADAM, verbose=true)
+    res1 = Optimization.solve(
+        optprob,
+        ADAM(params.ADAM_learning_rate),
+        callback = callback,
+        maxiters = params.niter_ADAM,
+        verbose = true
+    )
     @info "Training loss after $(length(losses)) iterations: $(losses[end])"
 
     if params.niter_LBFGS > 0
         @info "Start optimization with LBFGS"
         optprob2 = Optimization.OptimizationProblem(optf, res1.u)
         # res2 = Optimization.solve(optprob2, Optim.LBFGS(), callback=callback, maxiters=params.niter_LBFGS) #, reltol=1e-6)
-        res2 = Optimization.solve(optprob2, Optim.BFGS(; initial_stepnorm=0.01, linesearch=LineSearches.BackTracking()), callback=callback, maxiters=params.niter_LBFGS) #, reltol=1e-6)
+        res2 = Optimization.solve(
+            optprob2,
+            Optim.BFGS(; initial_stepnorm=0.01, linesearch=LineSearches.BackTracking()),
+            callback = callback,
+            maxiters = params.niter_LBFGS) #, reltol=1e-6)
     else
         res2 = res1
     end
@@ -109,7 +126,14 @@ function train(data::AD,
         pretty_table(loss_dict, sortkeys=true, header=["Loss term", "Value"])
     end
 
-    return Results(θ=θ_trained, u0=u0_trained, U=U, st=st,
-                   fit_times=fit_times, fit_directions=fit_directions,
-                   fit_rotations=fit_rotations, losses=losses)
+    return Results(
+        θ = θ_trained,
+        u0 = u0_trained,
+        U = U,
+        st = st,
+        fit_times = fit_times,
+        fit_directions = fit_directions,
+        fit_rotations = fit_rotations,
+        losses = losses
+    )
 end

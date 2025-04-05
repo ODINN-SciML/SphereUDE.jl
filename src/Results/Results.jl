@@ -5,7 +5,7 @@ abstract type AbstractResult end
 """
 Final results
 """
-@kwdef struct Results{F <: AbstractFloat} <: AbstractResult
+@kwdef struct Results{F<:AbstractFloat} <: AbstractResult
     θ::ComponentVector
     u0::Vector{F}
     U::Lux.AbstractLuxLayer
