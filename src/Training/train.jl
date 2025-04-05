@@ -45,7 +45,7 @@ function train(
     callback(p, l) = CallbackOptimizationSet(
         p,
         l;
-        callbacks=(callback_print_closure, callback_proj_closure)
+        callbacks = (callback_print_closure, callback_proj_closure),
     )
 
     # Dispatch the right loss function
