@@ -10,7 +10,7 @@ Random.seed!(rng, 666)
 ###############  Simulation of Simple Rotation ###############
 ##############################################################
 
-function test_single_rotation(;repeat_times=false)
+function test_single_rotation(; repeat_times = false)
 
     # Total time simulation
     tspan = [0, 160.0]
