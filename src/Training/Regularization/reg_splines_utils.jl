@@ -24,7 +24,7 @@ function cubic_regularization(
             Jac = batched_jacobian(
                 smodel,
                 AutoForwardDiff(),
-                reshape(nodes, 1, params.n_quadrature)
+                reshape(nodes, 1, params.n_quadrature),
             )
         elseif reg.diff_mode.method == "Zygote"
             Jac = batched_jacobian(
