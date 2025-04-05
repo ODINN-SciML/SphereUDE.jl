@@ -35,9 +35,9 @@ function test_param_constructor()
     reg2 = Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = LuxNestedAD())
 
     params2 = SphereParameters(
-        tmin=0.0,
-        tmax=100.0,
-        u0 = [0.0 ,0.0 ,1.0],
+        tmin = 0.0,
+        tmax = 100.0,
+        u0 = [0.0, 0.0, 1.0],
         ωmax = 1.0,
         reg = [reg1, reg2],
         train_initial_condition = false,
