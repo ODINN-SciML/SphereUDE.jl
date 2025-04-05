@@ -97,8 +97,8 @@ function regularization(
                     )^reg.power,
                 params.tmin,
                 params.tmax,
-                params.n_quadrature
-            ) 
+                params.n_quadrature,
+            )
 
         else
             throw("Method not implemented.")
