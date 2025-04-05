@@ -72,7 +72,8 @@ function train(
         end
         # Define the loss function with just empirical component
         f_loss_empirical(β) = loss_empirical(β, data, params)
-        optf₀ = Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
+        optf₀ =
+            Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
         optprob₀ = Optimization.OptimizationProblem(optf₀, β)
         res₀ = Optimization.solve(
             optprob₀,
