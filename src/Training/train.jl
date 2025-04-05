@@ -9,8 +9,8 @@ function train(
     data::AD,
     params::AP,
     rng,
-    θ_trained=[],
-    model::Union{Chain,Nothing}=nothing
+    θ_trained = [],
+    model::Union{Chain,Nothing} = nothing,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Raise warnings
