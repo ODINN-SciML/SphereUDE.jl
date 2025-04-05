@@ -148,6 +148,6 @@ function train(
         fit_times = fit_times,
         fit_directions = fit_directions,
         fit_rotations = fit_rotations,
-        losses = losses
+        losses = losses,
     )
 end
