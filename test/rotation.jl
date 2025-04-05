@@ -65,8 +65,8 @@ function test_single_rotation(;repeat_times=false)
         abstol = 1e-12,
         niter_ADAM = 201,
         niter_LBFGS = 201,
-        verbose_step=50,
-        sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true))
+        verbose_step = 50,
+        sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
     )
 
     results = train(data, params, rng, nothing, nothing)
