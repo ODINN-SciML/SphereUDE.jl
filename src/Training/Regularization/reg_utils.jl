@@ -69,7 +69,7 @@ function regularization(
                         params.tmax,
                         params.n_quadrature
                     )
-                    if abs(l_AD - l_FD) > 1e-2 * abs(l_FD) 
+                    if abs(l_AD - l_FD) > 1e-2 * abs(l_FD)
                         @warn "[SphereUDE] Nested AD is giving significant different results than Finite Differences."
                         @printf "[SphereUDE] Regularization with AD: %.9f vs %.9f using Finite Differences" l_AD l_FD
                     end
