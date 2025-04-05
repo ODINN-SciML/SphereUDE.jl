@@ -47,12 +47,7 @@ function cubic_regularization(
 
     elseif typeof(reg.diff_mode) <: ComplexStepDifferentiation
         L_ = [
-            complex_step_differentiation(τ -> smodel([τ]), t, reg.diff_mode.ϵ)
-            for t = nodes
-        ]
-        L_cross_u = [
-            cross(L_[j], u_[:, j])
-            for j = 1:params.n_quadrature
+            complex_step_differentiation(τ -> smodel([τ]), t, reg.diff_mode.ϵ) for t in nodes
         ]
     else
         throw("Method not implemented.")
