@@ -55,7 +55,7 @@ function plot_sphere(
     # X_true_path = cart2sph(X_path, radians=false)
     X_fit_path = cart2sph(results.fit_directions, radians = false)
 
-    # Plots in Python follow the long, lat ordering 
+    # Plots in Python follow the long, lat ordering
 
     sns[].scatterplot(
         ax = ax,
@@ -67,10 +67,10 @@ function plot_sphere(
         transform = ccrs[].PlateCarree(),
     )
 
-    for i = 1:(length(results.fit_times)-1)
+    for i = 1:(length(results.fit_times) - 1)
         plt[].plot(
-            [X_fit_path[2, i], X_fit_path[2, i+1]],
-            [X_fit_path[1, i], X_fit_path[1, i+1]],
+            [X_fit_path[2, i], X_fit_path[2, i + 1]],
+            [X_fit_path[1, i], X_fit_path[1, i + 1]],
             linewidth = 2,
             color = "black",
             transform = ccrs[].Geodetic(),

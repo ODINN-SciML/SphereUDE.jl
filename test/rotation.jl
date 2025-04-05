@@ -21,8 +21,8 @@ function test_single_rotation(; repeat_times = false)
     if repeat_times
         # We repeat a few ages
         random_times[end] = random_times[1]
-        random_times[end-1] = random_times[1]
-        random_times[end-2] = random_times[2]
+        random_times[end - 1] = random_times[1]
+        random_times[end - 2] = random_times[2]
     end
     times_samples = sort(random_times)
 
