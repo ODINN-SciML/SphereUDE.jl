@@ -112,7 +112,8 @@ function train(
             optprob2,
             Optim.BFGS(; initial_stepnorm = 0.01, linesearch = LineSearches.BackTracking()),
             callback = callback,
-            maxiters = params.niter_LBFGS) #, reltol=1e-6)
+            maxiters = params.niter_LBFGS,
+        ) #, reltol=1e-6)
     else
         res2 = res1
     end
