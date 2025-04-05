@@ -91,7 +91,10 @@ function regularization(
             # Complex step differentiation
             # l_ += quadrature(t -> norm(complex_step_differentiation(τ -> predict_L(τ, U, θ, st), t, reg.diff_mode.ϵ))^reg.power, params.tmin, params.tmax, params.n_quadrature) 
             l_ += quadrature(
-                t -> norm(complex_step_differentiation(τ -> smodel([τ]), t, reg.diff_mode.ϵ))^reg.power,
+                t ->
+                    norm(
+                        complex_step_differentiation(τ -> smodel([τ]), t, reg.diff_mode.ϵ),
+                    )^reg.power,
                 params.tmin,
                 params.tmax,
                 params.n_quadrature
