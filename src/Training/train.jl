@@ -34,8 +34,9 @@ function train(
     # Closure of the ODE update for solve
     ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
 
-    # global prob_nn =
-    #     ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
+    # TODO: Remove this global variable from here
+    global prob_nn =
+        ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
 
     ### Callback
     losses = Float64[]
@@ -71,9 +72,20 @@ function train(
         f_loss_empirical(β) = loss_empirical(β, data, params)
         optf₀ = Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
         optprob₀ = Optimization.OptimizationProblem(optf₀, β)
-        res₀ = Optimization.solve(optprob₀, ADAM(params.ADAM_learning_rate), callback=callback_pretrain, maxiters=params.niter_ADAM, verbose=false)
+        res₀ = Optimization.solve(
+            optprob₀,
+            ADAM(params.ADAM_learning_rate),
+            callback = callback_pretrain,
+            maxiters = params.niter_ADAM,
+            verbose = false,
+        )
         optprob₁ = Optimization.OptimizationProblem(optf₀, res₀.u)
-        res₁ = Optimization.solve(optprob₁, Optim.BFGS(; initial_stepnorm=0.01, linesearch=LineSearches.BackTracking()), callback=callback_pretrain, maxiters=params.niter_LBFGS)
+        res₁ = Optimization.solve(
+            optprob₁,
+            Optim.BFGS(; initial_stepnorm = 0.01, linesearch = LineSearches.BackTracking()),
+            callback = callback_pretrain,
+            maxiters = params.niter_LBFGS,
+        )
         β = res₁.u
     end
 
@@ -86,7 +98,7 @@ function train(
         ADAM(params.ADAM_learning_rate),
         callback = callback,
         maxiters = params.niter_ADAM,
-        verbose = true
+        verbose = true,
     )
     @info "Training loss after $(length(losses)) iterations: $(losses[end])"
 
@@ -96,7 +108,7 @@ function train(
         # res2 = Optimization.solve(optprob2, Optim.LBFGS(), callback=callback, maxiters=params.niter_LBFGS) #, reltol=1e-6)
         res2 = Optimization.solve(
             optprob2,
-            Optim.BFGS(; initial_stepnorm=0.01, linesearch=LineSearches.BackTracking()),
+            Optim.BFGS(; initial_stepnorm = 0.01, linesearch = LineSearches.BackTracking()),
             callback = callback,
             maxiters = params.niter_LBFGS) #, reltol=1e-6)
     else
