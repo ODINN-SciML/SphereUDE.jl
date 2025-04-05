@@ -32,10 +32,7 @@ function plot_sphere(
 
     plt[].figure(figsize = (10, 10))
     ax = plt[].axes(
-        projection = ccrs[].Orthographic(
-            central_latitude = central_latitude,
-            central_longitude = central_longitude,
-        ),
+        projection = ccrs[].Orthographic(central_latitude = central_latitude, central_longitude = central_longitude),
     )
 
     # Set default plot parameters. 
@@ -77,7 +74,7 @@ function plot_sphere(
     end
     # plt.title(title, fontsize=20)
     if !isnothing(saveas)
-        plt[].savefig(saveas, format="pdf")
+        plt[].savefig(saveas, format = "pdf")
     end
 
     return nothing
@@ -116,7 +113,7 @@ function plot_L(
     # plt.title(title)
 
     if !isnothing(saveas)
-        plt[].savefig(saveas, format="pdf")
+        plt[].savefig(saveas, format = "pdf")
     end
 
     return nothing
