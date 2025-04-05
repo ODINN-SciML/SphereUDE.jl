@@ -82,7 +82,6 @@ function train(data::AD,
         optprob2 = Optimization.OptimizationProblem(optf, res1.u)
         # res2 = Optimization.solve(optprob2, Optim.LBFGS(), callback=callback, maxiters=params.niter_LBFGS) #, reltol=1e-6)
         res2 = Optimization.solve(optprob2, Optim.BFGS(; initial_stepnorm=0.01, linesearch=LineSearches.BackTracking()), callback=callback, maxiters=params.niter_LBFGS) #, reltol=1e-6)
-        println("Final training loss after $(length(losses)) iterations: $(losses[end])")
     else
         res2 = res1
     end
@@ -105,7 +104,10 @@ function train(data::AD,
 
     # Recover final balance between different terms involved in the loss function to assess hyperparameter selection.
     _, loss_dict = f_loss(β_trained)
-    pretty_table(loss_dict, sortkeys=true, header=["Loss term", "Value"])
+    if params.verbose
+        println("Final training loss after $(length(losses)) iterations: $(losses[end])")
+        pretty_table(loss_dict, sortkeys=true, header=["Loss term", "Value"])
+    end
 
     return Results(θ=θ_trained, u0=u0_trained, U=U, st=st,
                    fit_times=fit_times, fit_directions=fit_directions,

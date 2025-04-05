@@ -5,7 +5,7 @@ using SphereUDE
 using BenchmarkTools
 using Logging
 Logging.disable_logging(Logging.Info)
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 5 * 60
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2 * 60
 
 using Distributions, Statistics, LinearAlgebra
 using SciMLSensitivity
@@ -56,7 +56,7 @@ for regs in regularization_types
                 train_initial_condition = false,
                 multiple_shooting = false,
                 u0 = [0.0, 0.0, -1.0], ωmax = ω₀, reltol = 1e-12, abstol = 1e-12,
-                niter_ADAM = 201, niter_LBFGS = 0, verbose=false,
+                niter_ADAM = 11, niter_LBFGS = 0, verbose=false,
                 sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true))
             )
     push!(params_benchmark, params)

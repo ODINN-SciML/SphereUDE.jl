@@ -30,7 +30,7 @@ function plot_sphere(# ax::PyCall.PyObject,
 
     plt[].figure(figsize=(10,10))
     ax = plt[].axes(projection=ccrs[].Orthographic(central_latitude=central_latitude, central_longitude=central_longitude))
-    
+
     # Set default plot parameters. 
     # See https://matplotlib.org/stable/users/explain/customizing.html for customizable optionsz
     if !isnothing(matplotlib_rcParams)
@@ -54,7 +54,7 @@ function plot_sphere(# ax::PyCall.PyObject,
                       hue = data.times, s=150,
                       palette="viridis",
                       transform = ccrs[].PlateCarree());
-    
+
     for i in 1:(length(results.fit_times)-1)
         plt[].plot([X_fit_path[2,i], X_fit_path[2,i+1]], 
                    [X_fit_path[1,i], X_fit_path[1,i+1]],
@@ -92,7 +92,7 @@ function plot_L(data::AbstractData,
         angular_velocity_true = mapslices(x -> norm(x), Ls_true, dims=1)[1,:]
         ax.plot(times_smooth, angular_velocity_true, label="Reference")
     end
-    
+
     # plt.title("")
     plt[].xlabel("Time")
     plt[].ylabel("Angular Velocity")
