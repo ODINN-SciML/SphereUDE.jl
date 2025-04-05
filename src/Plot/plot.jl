@@ -95,7 +95,7 @@ function plot_L(
     title::String,
 )
 
-    fig, ax = plt[].subplots(figsize=(10, 5))
+    fig, ax = plt[].subplots(figsize = (10, 5))
 
     times_smooth = collect(LinRange(results.fit_times[begin], results.fit_times[end], 1000))
     Ls = reduce(
