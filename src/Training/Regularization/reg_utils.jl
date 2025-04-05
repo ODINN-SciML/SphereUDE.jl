@@ -84,7 +84,7 @@ function regularization(
                 t -> norm(central_fdm(τ -> smodel([τ]), t, reg.diff_mode.ϵ))^reg.power,
                 params.tmin,
                 params.tmax,
-                params.n_quadrature
+                params.n_quadrature,
             )
 
         elseif typeof(reg.diff_mode) <: ComplexStepDifferentiation
