@@ -6,7 +6,7 @@ abstract type AbstractRegularization end
 """
 Regularization information
 """
-@kwdef struct Regularization{F<:AbstractFloat, I<:Int} <: AbstractRegularization
+@kwdef struct Regularization{F<:AbstractFloat,I<:Int} <: AbstractRegularization
     order::I        # Order of derivative
     power::F        # Power of the Euclidean norm 
     λ::F            # Regularization hyperparameter
