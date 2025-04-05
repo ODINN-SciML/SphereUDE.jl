@@ -61,7 +61,7 @@ function train(
     """
     if params.pretrain
         losses_pretrain = Float64[]
-        callback_pretrain = function(p, l)
+        callback_pretrain = function (p, l)
             push!(losses_pretrain, l)
             if length(losses_pretrain) % params.verbose_step == 0
                 @printf "[Pretrain with no regularization] Iteration: [%5d / %5d] \t Loss: %.9f \n" length(losses_pretrain) (params.niter_ADAM+params.niter_LBFGS) losses_pretrain[end]
