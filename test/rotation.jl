@@ -50,7 +50,12 @@ function test_single_rotation(; repeat_times = false)
             λ = 0.1,
             diff_mode = FiniteDifferences(1e-6),
         ),
-        Regularization(order = 0, power = 2.0, λ = 0.001, diff_mode = nothing),
+        Regularization(
+            order = 0,
+            power = 2.0,
+            λ = 0.001,
+            diff_mode = nothing,
+        ),
     ]
 
     params = SphereParameters(
@@ -70,15 +75,5 @@ function test_single_rotation(; repeat_times = false)
     )
 
     results = train(data, params, rng, nothing, nothing)
-
     @test true
-
 end
-
-##############################################################
-######################  PyCall Plots #########################
-##############################################################
-
-# plot_sphere(data, results, -20., 125., saveas="examples/double_rotation/" * title * "_sphere.pdf", title="Double rotation") # , matplotlib_rcParams=Dict("font.size"=> 50))
-# plot_L(data, results, saveas="examples/double_rotation/" * title * "_L.pdf", title="Double rotation")
-
