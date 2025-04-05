@@ -20,7 +20,7 @@ function test_param_constructor()
     params = SphereParameters(
         tmin = 0.0,
         tmax = 100.0,
-        u0 = [0.0 ,0.0 ,1.0],
+        u0 = [0.0, 0.0, 1.0],
         ωmax = 1.0,
         reg = nothing,
         train_initial_condition = false,
