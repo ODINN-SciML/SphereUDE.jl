@@ -4,6 +4,8 @@
 [![codecov](https://codecov.io/gh/ODINN-SciML/SphereUDE.jl/graph/badge.svg?token=UC0KFSUU3X)](https://codecov.io/gh/ODINN-SciML/SphereUDE.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+<img src="https://github.com/ODINN-SciML/SphereUDE.jl/blob/main/plots/logo.png?raw=true" width="250">
+
 ## ⚠️ New preprint available! 📖 ⚠️
 
 The paper is now available as a preprint: https://www.authorea.com/users/589727/articles/1265456-spherical-path-regression-through-universal-differential-equations-with-applications-to-paleomagnetism
