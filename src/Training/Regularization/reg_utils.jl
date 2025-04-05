@@ -53,8 +53,7 @@ function regularization(
 
             # Compute the final agregation to the loss
             l_ += sum([
-                weights[j] * norm(Jac[:,1,j])^reg.power
-                for j = 1:params.n_quadrature
+                weights[j] * norm(Jac[:, 1, j])^reg.power for j = 1:params.n_quadrature
             ])
 
             # Test every a few iterations that AD is working properly
