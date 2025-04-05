@@ -60,8 +60,8 @@ function regularization(
             ignore() do
                 if rand(Bernoulli(0.001))
                     l_AD = sum([
-                        weights[j] * norm(Jac[:,1,j])^reg.power
-                        for j = 1:params.n_quadrature
+                        weights[j] * norm(Jac[:, 1, j])^reg.power for
+                        j = 1:params.n_quadrature
                     ])
                     l_FD = quadrature(
                         t -> norm(central_fdm(τ -> smodel([τ]), t, 1e-5))^reg.power,
