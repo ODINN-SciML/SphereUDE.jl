@@ -32,7 +32,7 @@ include("python.jl")
     end
 
     @testset "Inversion with repeat times" begin
-        test_single_rotation(repeat_times=true)
+        test_single_rotation(repeat_times = true)
     end
 
 end
