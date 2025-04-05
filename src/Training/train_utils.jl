@@ -56,7 +56,7 @@ function printProgressLoss(iter, total_iters, loss, loss_emp, loss_reg, improvem
         if improvement < 0
             printstyled(@sprintf("%.2f %%", 100*improvement); color=:green)
         else
-            printstyled(@sprintf("%.2f %%", 100*improvement); color=:red)
+            printstyled(@sprintf("%.2f %%", 100 * improvement); color = :red)
         end
     end
     println("")
