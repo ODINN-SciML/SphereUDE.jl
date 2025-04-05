@@ -1,7 +1,12 @@
 
 function test_reg_constructor()
 
-    reg = Regularization(order = 1, power = 2.0, λ = 0.1, diff_mode = ComplexStepDifferentiation())
+    reg = Regularization(
+        order = 1,
+        power = 2.0,
+        λ = 0.1,
+        diff_mode = ComplexStepDifferentiation(),
+    )
 
     @test reg.order == 1
     @test reg.power == 2.0
