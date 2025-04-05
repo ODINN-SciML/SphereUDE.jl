@@ -8,7 +8,7 @@ function cubic_regularization(
     U::Chain,
     st::NamedTuple,
     reg::CubicSplinesRegularization,
-    params::AP
+    params::AP,
 ) where {AP<:AbstractParameters}
 
     smodel = StatefulLuxLayer{true}(U, β.θ, st)
