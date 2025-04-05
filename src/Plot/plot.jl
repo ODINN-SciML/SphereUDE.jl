@@ -25,7 +25,7 @@ function plot_sphere(
     central_longitude::Float64;
     saveas::Union{String,Nothing},
     title::String,
-    matplotlib_rcParams::Union{Dict,Nothing}=nothing
+    matplotlib_rcParams::Union{Dict,Nothing} = nothing,
 )
 
     # cmap = mpl_colormap.get_cmap("viridis")
