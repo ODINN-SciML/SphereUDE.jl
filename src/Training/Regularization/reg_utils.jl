@@ -37,7 +37,7 @@ function regularization(
                 Jac = batched_jacobian(
                     smodel,
                     AutoForwardDiff(),
-                    reshape(nodes, 1, params.n_quadrature)
+                    reshape(nodes, 1, params.n_quadrature),
                 )
             elseif reg.diff_mode.method == "Zygote"
                 # This can also be done with Zygote in reverse mode
