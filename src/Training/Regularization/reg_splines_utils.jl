@@ -42,14 +42,8 @@ function cubic_regularization(
         ]
 
     elseif typeof(reg.diff_mode) <: FiniteDifferences
-        L_ = [
-            central_fdm(τ -> smodel([τ]), t, reg.diff_mode.ϵ)
-            for t = nodes
-        ]
-        L_cross_u = [
-            cross(L_[j], u_[:, j])
-            for j = 1:params.n_quadrature
-        ]
+        L_ = [central_fdm(τ -> smodel([τ]), t, reg.diff_mode.ϵ) for t in nodes]
+        L_cross_u = [cross(L_[j], u_[:, j]) for j = 1:params.n_quadrature]
 
     elseif typeof(reg.diff_mode) <: ComplexStepDifferentiation
         L_ = [
