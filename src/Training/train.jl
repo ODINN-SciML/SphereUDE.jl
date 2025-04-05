@@ -129,7 +129,7 @@ function train(
     end
 
     # Final Fit
-    fit_times = collect(range(params.tmin,params.tmax, length=1000))
+    fit_times = collect(range(params.tmin, params.tmax, length = 1000))
     fit_directions = predict(β_trained, params, fit_times)
     fit_rotations = reduce(hcat, (t -> predict_L(t, U, β_trained.θ, st)).(fit_times))
 
