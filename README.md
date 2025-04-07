@@ -1,10 +1,8 @@
-# SphereUDE
-
 [![Build Status](https://github.com/ODINN-SciML/SphereUDE.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ODINN-SciML/SphereUDE.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![codecov](https://codecov.io/gh/ODINN-SciML/SphereUDE.jl/graph/badge.svg?token=UC0KFSUU3X)](https://codecov.io/gh/ODINN-SciML/SphereUDE.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-<img src="https://github.com/ODINN-SciML/SphereUDE.jl/blob/main/plots/logo.png?raw=true" width="250">
+<img src="https://github.com/ODINN-SciML/SphereUDE.jl/blob/main/plots/logo.png?raw=true" width="350">
 
 ## ⚠️ New preprint available! 📖 ⚠️
 
