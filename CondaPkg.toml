@@ -4,10 +4,11 @@ matplotlib = ""
 cartopy = ""
 pandas = ""
 seaborn = ""
+setuptools = ""
 
 [pip.deps]
 pmagpy = "==4.2.106"
-PyQt5 = "" 
+PyQt5 = ""
 
 [extras]
 channels = ["conda-forge"]

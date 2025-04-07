@@ -18,11 +18,36 @@ using PrettyTables, Printf
 # Debugging
 using Infiltrator
 
-include("types.jl")
-include("utils.jl")
-include("losses.jl")
-include("train.jl")
-include("plot.jl")
+# Data Types
+include("Parameters/SphereParameters.jl")
+include("Data/SphereData.jl")
+include("Data/data_utils.jl")
+
+# Differential Equation support
+include("DiffEq/forward.jl")
+include("DiffEq/inverse.jl")
+
+# Training utils
+include("Training/ML/NN_utils.jl")
+include("Training/ML/numerical_utils.jl")
+include("Training/ML/AD.jl")
+
+# Losses and regularization
+include("Training/Regularization/Regularization.jl")
+include("Training/Regularization/reg_utils.jl")
+include("Training/Regularization/reg_splines_utils.jl")
+include("Training/Loss/losses.jl")
+
+# Training
+include("Training/train.jl")
+include("Training/train_utils.jl")
+
+# Results
+include("Results/Results.jl")
+include("Results/result_utils.jl")
+
+# Plotting
+include("Plot/plot.jl")
 
 
 # We define empty objects for the Python packages

@@ -1,3 +1,5 @@
+using Revise
+
 using SphereUDE
 using Test
 using Lux
@@ -7,22 +9,30 @@ include("utils.jl")
 include("rotation.jl")
 include("python.jl")
 
-@testset "Constructors" begin
-    test_reg_constructor()
-    test_param_constructor()
-end
+@testset "Run all tests" begin
 
-@testset "Utils" begin 
-    test_coordinate()
-    test_complex_activation()
-    test_integration()
-end
+    @testset "Constructors" begin
+        test_reg_constructor()
+        test_param_constructor()
+    end
 
-@testset "Python Integration" begin
-    test_matplotplib()
-    test_pmagpy()
-end
+    @testset "Utils" begin
+        test_coordinate()
+        test_complex_activation()
+        test_integration()
+    end
 
-@testset "Inversion" begin
-    test_single_rotation()
+    @testset "Python Integration" begin
+        test_matplotplib()
+        test_pmagpy()
+    end
+
+    @testset "Inversion" begin
+        test_single_rotation()
+    end
+
+    @testset "Inversion with repeat times" begin
+        test_single_rotation(repeat_times = true)
+    end
+
 end

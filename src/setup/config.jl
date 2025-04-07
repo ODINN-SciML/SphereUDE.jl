@@ -10,10 +10,10 @@ function __init__()
         isassigned(sns) ? nothing : sns[] = pyimport("seaborn")
         isassigned(ccrs) ? nothing : ccrs[] = pyimport("cartopy.crs")
         isassigned(feature) ? nothing : feature[] = pyimport("cartopy.feature")
-    catch e 
-        @warn "It looks like you have not installed and/or activated the virtual Python environment. \n 
+    catch e
+        @warn "It looks like you have not installed and/or activated the virtual Python environment. \n
         Please follow the guidelines in: https://github.com/ODINN-SciML/SphereUDE.jl"
-        @warn exception=(e, catch_backtrace())
+        @warn exception = (e, catch_backtrace())
     end
 
 end
