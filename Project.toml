@@ -53,7 +53,7 @@ PythonCall = "0.9"
 Revise = "3.1"
 SciMLSensitivity = "7.20"
 Statistics = "1"
-Zygote = "0.6"
+Zygote = "0.6, 0.7"
 julia = "1.10"
 
 [extras]
