@@ -120,3 +120,7 @@ function gelu(z::Complex)
     # We use the Gelu approximation to avoid complex holomorphic error function
     return 0.5 * z * (1 + tanh((sqrt(2 / π)) * (z + 0.044715 * z^3)))
 end
+
+function convert_to_float64(θ::NamedTuple)
+    return map(x -> x isa AbstractArray ? convert.(Float64, x) : x, θ)
+end

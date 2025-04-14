@@ -72,7 +72,7 @@ function train(
             return false
         end
         # Define the loss function with just empirical component
-        f_loss_empirical(β) = loss_empirical(β, data, params)
+        f_loss_empirical(β) = loss_empirical(β, prob_nn, data, params)
         optf₀ =
             Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
         optprob₀ = Optimization.OptimizationProblem(optf₀, β)
@@ -153,8 +153,4 @@ function train(
         fit_rotations = fit_rotations,
         losses = losses,
     )
-end
-
-function convert_to_float64(θ::NamedTuple)
-    return map(x -> x isa AbstractArray ? convert.(Float64, x) : x, θ)
 end
