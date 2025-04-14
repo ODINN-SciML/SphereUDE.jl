@@ -14,7 +14,7 @@ function train(
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Raise warnings
-    raise_warnings(data::AD, params::AP)
+    raise_warnings(data, params)
 
     # Set Neural Network
     if isnothing(model)
@@ -22,7 +22,8 @@ function train(
     else
         U = model
     end
-    θ, st = Lux.setup(rng, U)
+    _θ, st = Lux.setup(rng, U)
+    θ = convert_to_float64(_θ) # Convert to Float64 to avoid type instabilities
 
     # Set component vector for Optimization
     if params.train_initial_condition
@@ -32,11 +33,11 @@ function train(
     end
 
     # Closure of the ODE update for solve
-    ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
+    function ude_rotation_closure!(du, u, p, t)
+        ude_rotation!(du, u, p, t, U, st)
+    end
 
-    # TODO: Remove this global variable from here
-    global prob_nn =
-        ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
+    prob_nn = ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
 
     ### Callback
     losses = Float64[]
@@ -53,7 +54,7 @@ function train(
         throw("[SphereUDE] Method not implemented.")
         # f_loss(β) = loss_multiple_shooting
     else
-        f_loss(β) = loss(β, data, params, U, st)
+        f_loss(β) = loss(β, prob_nn, data, params, U, st)
     end
 
     """
@@ -71,7 +72,7 @@ function train(
             return false
         end
         # Define the loss function with just empirical component
-        f_loss_empirical(β) = loss_empirical(β, data, params)
+        f_loss_empirical(β) = loss_empirical(β, prob_nn, data, params)
         optf₀ =
             Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
         optprob₀ = Optimization.OptimizationProblem(optf₀, β)
@@ -132,7 +133,7 @@ function train(
 
     # Final Fit
     fit_times = collect(range(params.tmin, params.tmax, length = 1000))
-    fit_directions = predict(β_trained, params, fit_times)
+    fit_directions = predict(β_trained, prob_nn, params, fit_times)
     fit_rotations = reduce(hcat, (t -> predict_L(t, U, β_trained.θ, st)).(fit_times))
 
     # Recover final balance between different terms involved in the loss function to assess hyperparameter selection.

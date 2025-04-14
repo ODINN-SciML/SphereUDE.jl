@@ -14,7 +14,7 @@ SphereUDE.jl is a Julia package for non-parametric regression of data supported 
 It implements a simple universal differential equation (UDE) that naturally constrains trajectories to lie on the surface of a sphere. 
 This has an important application in Paleomagnetism, where the objective is to fit Apparent Polar Wander Paths (APWPs) to reconstruct continents' past motion. 
 In addition to sphere regression, SphereUDE.jl implements a series of improvements over previous modeling methods, such as 
-- Explicit sphere constraint that allows for univesality of regression 
+- Explicit sphere constraint that allows for universality of regression 
 - Regularization on the path to incorporate physical priors
 
 We are further working in new features such as
@@ -23,7 +23,7 @@ We are further working in new features such as
 
 ## Installing SphereUDE
 
-`SphereUDE.jl` is available thought the Julia package manager. 
+`SphereUDE.jl` is available through the Julia package manager. 
 To install `SphereUDE` in a given environment, just do in the REPL:
 ```julia
 julia> ] # enter Pkg mode
@@ -33,7 +33,7 @@ julia> ] # enter Pkg mode
 
 ## Usage
 
-If you are interested in using `SphereUDE.jl`, we encourage you to take a look at our galery of examples. 
+If you are interested in using `SphereUDE.jl`, we encourage you to take a look at our gallery of examples. 
 Examples are included in the repository [ODINN-SciML/SphereUDE-examples](https://github.com/ODINN-SciML/SphereUDE-examples).
 
 To train a model with new unobserved data, we need to define the _data_, _parameters_, and _regularization_ we want to use. 
@@ -45,7 +45,7 @@ where `times` correspond to an array of the sampled times where we observed the 
 We can further add an array `kappa` to specify uncertainty in the directions according to the Fisher distribution in the sphere. 
 
 It is possible to add different types of regularizations at the same time by specifying an array of the type `Regularization`, which specifies the type of regularization being used and the `diff_mode` that specifies the underlying automatic differentiation machinery being used to compute the gradients. 
-For example, we can add regulazition using finite differences as 
+For example, we can add regularization using finite differences as 
 ```julia
 reg = [Regularization(order=1, power=2.0, λ=1e5, diff_mode=LuxNestedAD())]
 ```
@@ -59,7 +59,7 @@ params = SphereParameters(tmin = 0, tmax = 100,
                           niter_ADAM = 5000, niter_LBFGS = 5000, 
                           sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true))) 
 ```
-Training is finally being done with 
+Training is finally done with 
 ```julia
 using Random
 rng = Random.default_rng()
@@ -69,7 +69,7 @@ results = train(data, params, rng, nothing)
 ```
 with `rng` a random seed used for the initial setup of the neural network. 
 
-The architecture of the neural network can be customized and pass directy before training as follows: 
+The architecture of the neural network can be customized and passed directy before training as follows: 
 ```julia
 init_bias(rng, in_dims) = LinRange(tspan[1], tspan[2], in_dims)
 init_weight(rng, out_dims, in_dims) = 0.1 * ones(out_dims, in_dims)
@@ -92,20 +92,20 @@ JLD2.@save "./results_dict.jld2" results_dict
 plot_sphere(data, results, -30., 0., saveas="plot.png", title="Results")
 ```
 
-:books: We are working in a more complete documentation. Feel free to reach out in the meanwhile if you have any questions! 
+:books: We are working in a more complete documentation. Feel free to reach out in the meantime if you have any questions! 
 
 ## SphereUDE integration with Python
 
 To make plots using Matplotlib, Cartopy, and PMagPy, `SphereUDE.jl` uses `CondaPkg.jl` and `PythonCall.jl` to execute Python code directly from Julia.
 This is done automatically once you install `SphereUDE.jl`, meaning that the first time you install `SphereUDE.jl` a conda environment linked to your Julia environmnet will be created and 
 linked to your Julia session. 
-From there, `SphereUDE.jl` will internally call the Python libraries without any further action. 
+From there, `SphereUDE.jl` will internally call the Python libraries without any further action from the user's side. 
 
 ## Contribute to the project! :wave:
 
-We encourage you to contribute to this package. If you are interested in contributing, there are many ways in which you can help build this:
+We encourage you to contribute to this package. If you are interested in contributing, there are many ways in which you can help build this package:
 - :collision: **Report bugs in the code.** You can report problems with the code by oppening issues under the `Issues` tab in this repository. Please explain the problem you encounter and try to give a complete description of it so we can follow up on that.
-- :bulb: **Request new features and explanations.** If there is an important topic or example that you feel falls under the scope of this review and you would like us to include it, please request it! We are looking for new insights into what the community wants to learn.
+- :bulb: **Request new features and explanations.** If there is an important topic or example that you feel falls under the scope of this package and you would like us to include it, please request it! We are looking for new insights into what the community wants to learn.
 
 ## Contact 
 

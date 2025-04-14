@@ -7,6 +7,7 @@ General Loss Function
 """
 function loss(
     β::ComponentVector,
+    prob_nn::ODEProblem,
     data::AD,
     params::AP,
     U::Chain,
@@ -15,8 +16,7 @@ function loss(
 
     # Record the value of each individual loss to the total loss function for hyperparameter selection.
     loss_dict = Dict()
-
-    l_emp = loss_empirical(β, data, params)
+    l_emp = loss_empirical(β, prob_nn, data, params)
 
     loss_dict["Empirical"] = l_emp
 
@@ -54,16 +54,17 @@ Empirical loss function
 """
 function loss_empirical(
     β::ComponentVector,
+    prob_nn::ODEProblem,
     data::AD,
     params::AP,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Predict trajectory on times associated to dataset
     if data.repeat_times
-        u_unique = predict(β, params, data.times_unique)
+        u_unique = predict(β, prob_nn, params, data.times_unique)
         u_ = u_unique[:, data.times_unique_inverse]
     else
-        u_ = predict(β, params, data.times)
+        u_ = predict(β, prob_nn, params, data.times)
     end
 
     # Empirical error
@@ -81,7 +82,7 @@ end
 """
 Empirical Prediction function
 """
-function predict(β::ComponentVector, params::AP, T::Vector) where {AP<:AbstractParameters}
+function predict(β::ComponentVector, prob_nn::ODEProblem, params::AP, T::Vector) where {AP<:AbstractParameters}
 
     if params.train_initial_condition
         _prob = remake(
