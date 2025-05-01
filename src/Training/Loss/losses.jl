@@ -60,19 +60,32 @@ function loss_empirical(
 
     # Predict trajectory on times associated to dataset
     if data.repeat_times
-        u_unique = predict(β, params, data.times_unique)
+        times = data.times_unique
+        u_unique = predict(β, params, times)
         u_ = u_unique[:, data.times_unique_inverse]
     else
-        u_ = predict(β, params, data.times)
+        times = data.times
+        u_ = predict(β, params, times)
+    end
+
+    if params.weighted
+        weigths = quadrature(
+            params.tmin,
+            params.tmax,
+            times;
+            method = :Linear
+            ) ./ (params.tmax - params.tmin)
+    else
+        weigths = 1 / (params.tmax - params.tmin)
     end
 
     # Empirical error
     if isnothing(data.kappas)
         # The 3 is needed since the mean is computen on a 3xN matrix
-        return 3.0 * mean(abs2.(u_ .- data.directions))
+        return 3.0 * sum(weigths .* abs2.(u_ .- data.directions))
         # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
     else
-        return mean(data.kappas .* sum(abs2.(u_ .- data.directions), dims = 1))
+        return sum(weigths .* data.kappas .* sum(abs2.(u_ .- data.directions), dims = 1))
         # l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
     end
 
@@ -107,9 +120,13 @@ function predict(β::ComponentVector, params::AP, T::Vector) where {AP<:Abstract
         abstol = params.abstol,
         reltol = params.reltol,
         sensealg = params.sensealg,
-        dtmin = 1e-4 * (params.tmax - params.tmin),
+        dtmin = 1e-6 * (params.tmax - params.tmin),
         force_dtmin = true,
     )
+
+    if (typeof(params.sensealg) <: BacksolveAdjoint) & (!(params.tmax ≈ maximum(T)) | !(params.tmin ≈ minimum(T)))
+        @warn "Backsolve adjoint requires to saveat initial and final time of the simulation"
+    end
 
     # If numerical integration fails or bad choice of parameter, return infinity
     if sol.retcode != :Success

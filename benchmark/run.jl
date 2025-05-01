@@ -23,7 +23,8 @@ tspan = [0, 160.0]
 # Number of sample points
 N_samples = 100
 # Times where we sample points
-random_times = rand(sampler(Uniform(tspan[1], tspan[2])), N_samples)
+# Include initial and final time for backadjoint
+random_times = [tspan[1]; tspan[2]; rand(sampler(Uniform(tspan[1], tspan[2])), N_samples - 2)]
 times_samples = sort(random_times)
 
 # Expected maximum angular deviation in one unit of time (degrees)
@@ -47,9 +48,16 @@ regularization_types = [
     [Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = LuxNestedAD())],
 ]
 
+sensealg_types = [
+    GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
+    InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
+    BacksolveAdjoint(),
+    BacksolveAdjoint(autojacvec = ReverseDiffVJP(false), checkpointing = false)
+]
+
 # BenchmarkTools evaluates things at global scope
 params_benchmark = []
-for regs in regularization_types
+for regs in regularization_types, sensealg in sensealg_types
     params = SphereParameters(
         tmin = tspan[1],
         tmax = tspan[2],
@@ -63,13 +71,13 @@ for regs in regularization_types
         niter_ADAM = 11,
         niter_LBFGS = 0,
         verbose = false,
-        sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
+        sensealg = sensealg,
     )
     push!(params_benchmark, params)
 end
 
 for params in params_benchmark
-    println("## Benchmark of $(params.reg)")
+    println("## Benchmark of $(params.reg), $(params.sensealg)")
     println("> Training for a total of $(params.niter_ADAM+params.niter_LBFGS) epochs")
     trial = @benchmark train(data, $params, $rng, nothing, nothing)
     display(trial)

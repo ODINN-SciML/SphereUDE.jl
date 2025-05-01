@@ -93,8 +93,29 @@ function train(
     end
 
     @info "Start optimization with ADAM"
-    optf = Optimization.OptimizationFunction((x, β) -> (first ∘ f_loss)(x), params.adtype)
-    optprob = Optimization.OptimizationProblem(optf, β)
+    if params.customgrad
+        @info "Training with custom gradient method."
+
+        # Closure functions to deliver data loader
+        loss_function(_β, _p) = (first ∘ f_loss)(_β)
+        loss_function_grad(_dβ, _β, _p) = rotation_grad!(_dβ, _β, only(_p))
+
+        optf = Optimization.OptimizationFunction(
+            loss_function,
+            grad = rotation_grad!,
+            NoAD(),
+            )
+    else
+        # TODO: I think we should change the order of the parameters here, this is confusing
+        optf = Optimization.OptimizationFunction(
+            (β, _p) -> (first ∘ f_loss)(β),
+            params.adtype
+            )
+    end
+
+    # Create dummy data loader
+    train_loader = DataLoader([1.0], batchsize = 1, shuffle = false)
+    optprob = Optimization.OptimizationProblem(optf, β, train_loader)
 
     res1 = Optimization.solve(
         optprob,

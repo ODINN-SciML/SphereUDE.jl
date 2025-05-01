@@ -28,7 +28,8 @@ include("python.jl")
     end
 
     @testset "Inversion" begin
-        test_single_rotation()
+        "Dummy grandient" test_single_rotation(customgrad = true)
+        "SciMLSensitivity gradient" test_single_rotation(customgrad = false)
     end
 
     @testset "Inversion with repeat times" begin

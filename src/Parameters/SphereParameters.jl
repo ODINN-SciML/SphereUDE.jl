@@ -13,6 +13,7 @@ Training parameters
     reg::Union{Nothing,Array}
     train_initial_condition::Bool = false
     multiple_shooting::Bool = false
+    weighted::Bool = false
     niter_ADAM::I = 2000
     ADAM_learning_rate::F = 0.001
     niter_LBFGS::I = 2000
@@ -23,6 +24,7 @@ Training parameters
     adtype::Optimization.AbstractADType = AutoZygote()
     sensealg::SciMLBase.AbstractAdjointSensitivityAlgorithm =
         QuadratureAdjoint(autojacvec = ReverseDiffVJP(true))
+    customgrad::Bool = false
     pretrain::Bool = false
     hyperparameter_balance::Bool = false
     verbose::Bool = true

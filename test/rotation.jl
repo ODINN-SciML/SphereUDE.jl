@@ -10,7 +10,10 @@ Random.seed!(rng, 666)
 ###############  Simulation of Simple Rotation ###############
 ##############################################################
 
-function test_single_rotation(; repeat_times = false)
+function test_single_rotation(;
+    repeat_times = false,
+    customgrad = false
+    )
 
     # Total time simulation
     tspan = [0, 160.0]
@@ -67,6 +70,7 @@ function test_single_rotation(; repeat_times = false)
         niter_LBFGS = 201,
         verbose_step = 50,
         sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
+        customgrad = customgrad
     )
 
     results = train(data, params, rng, nothing, nothing)
