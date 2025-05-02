@@ -69,6 +69,9 @@ function loss_empirical(
     end
 
     if params.weighted
+        if data.repeat_times
+            @error "Repeat times not implemented for weighted sum."
+        end
         weigths = quadrature(
             params.tmin,
             params.tmax,
@@ -81,12 +84,16 @@ function loss_empirical(
 
     # Empirical error
     if isnothing(data.kappas)
-        # The 3 is needed since the mean is computen on a 3xN matrix
-        return 3.0 * sum(weigths .* abs2.(u_ .- data.directions))
-        # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
+        # @ignore_derivatives begin
+        #     # TODO: I should ensure the output is directly norm one and avoid this test here
+        #     @assert isapprox(2.0 * sum(weigths .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weigths .* abs2.(u_ .- data.directions)), rtol = 1e-3)
+        # end
+        return sum(weigths .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
     else
-        return sum(weigths .* data.kappas .* sum(abs2.(u_ .- data.directions), dims = 1))
-        # l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
+        return sum(weigths .* data.kappas .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
+        # @ignore_derivatives begin
+        #     @assert isapprox(2.0 * sum(weigths .*  data.kappas .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weigths .* data.kappas .* abs2.(u_ .- data.directions)), rtol = 1e-3)
+        # end
     end
 
 end

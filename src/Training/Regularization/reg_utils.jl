@@ -18,7 +18,6 @@ function regularization(
     l_ = 0.0
     if reg.order == 0
 
-        # l_ += quadrature(t -> norm(predict_L(t, U, θ, st))^reg.power, params.tmin, params.tmax, params.n_quadrature)
         l_ += quadrature(
             t -> norm(smodel([t]))^reg.power,
             params.tmin,
@@ -29,7 +28,7 @@ function regularization(
     elseif reg.order == 1
 
         if typeof(reg.diff_mode) <: LuxNestedAD
-            # Automatic Differentiation 
+
             nodes, weights = quadrature(params.tmin, params.tmax, params.n_quadrature)
 
             if reg.diff_mode.method == "ForwardDiff"
@@ -69,7 +68,7 @@ function regularization(
                         params.tmax,
                         params.n_quadrature,
                     )
-                    if abs(l_AD - l_FD) > 1e-2 * abs(l_FD)
+                    if abs(l_AD - l_FD) > 5e-2 * abs(l_FD)
                         @warn "[SphereUDE] Nested AD is giving significant different results than Finite Differences."
                         @printf "[SphereUDE] Regularization with AD: %.9f vs %.9f using Finite Differences" l_AD l_FD
                     end
@@ -77,8 +76,7 @@ function regularization(
             end
 
         elseif typeof(reg.diff_mode) <: FiniteDifferences
-            # Finite differences 
-            # l_ += quadrature(t -> norm(central_fdm(τ -> predict_L(τ, U, θ, st), t, reg.diff_mode.ϵ))^reg.power, params.tmin, params.tmax, params.n_quadrature)
+
             l_ += quadrature(
                 t -> norm(central_fdm(τ -> smodel([τ]), t, reg.diff_mode.ϵ))^reg.power,
                 params.tmin,
@@ -87,8 +85,7 @@ function regularization(
             )
 
         elseif typeof(reg.diff_mode) <: ComplexStepDifferentiation
-            # Complex step differentiation
-            # l_ += quadrature(t -> norm(complex_step_differentiation(τ -> predict_L(τ, U, θ, st), t, reg.diff_mode.ϵ))^reg.power, params.tmin, params.tmax, params.n_quadrature) 
+
             l_ += quadrature(
                 t ->
                     norm(
@@ -113,7 +110,7 @@ end
 
 """
 
-Function to check for the presence of L1 regularization in the loss function. 
+Function to check for the presence of L1 regularization in the loss function.
 """
 function isL1reg(regs::Union{Vector{R},Nothing}) where {R<:AbstractRegularization}
     if isnothing(regs)

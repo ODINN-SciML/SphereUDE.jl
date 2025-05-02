@@ -42,10 +42,15 @@ function train(
     losses = Float64[]
     callback_print_closure(p, l) = callback_print(p, l, params, losses, f_loss)
     callback_proj_closure(p, l) = callback_proj(p, l, params)
+    callback_stop_condition_closure(p, l) = callback_stop_condition(p, l, losses)
     callback(p, l) = CallbackOptimizationSet(
         p,
         l;
-        callbacks = (callback_print_closure, callback_proj_closure),
+        callbacks = (
+            callback_print_closure,
+            callback_proj_closure,
+            callback_stop_condition_closure,
+            ),
     )
 
     # Dispatch the right loss function
@@ -60,14 +65,11 @@ function train(
     Pretraining to find parameters without impossing regularization
     """
     if params.pretrain
+        @info "Pretraining without regularization for initialization."
         losses_pretrain = Float64[]
+        n_pretrain = 300
         callback_pretrain = function (p, l)
             push!(losses_pretrain, l)
-            if length(losses_pretrain) % params.verbose_step == 0
-                @printf "[Pretrain with no regularization] Iteration: [%5d / %5d] \t Loss: %.9f \n" length(
-                    losses_pretrain,
-                ) (params.niter_ADAM + params.niter_LBFGS) losses_pretrain[end]
-            end
             return false
         end
         # Define the loss function with just empirical component
@@ -79,17 +81,11 @@ function train(
             optprob₀,
             ADAM(params.ADAM_learning_rate),
             callback = callback_pretrain,
-            maxiters = params.niter_ADAM,
+            maxiters = n_pretrain,
             verbose = false,
         )
-        optprob₁ = Optimization.OptimizationProblem(optf₀, res₀.u)
-        res₁ = Optimization.solve(
-            optprob₁,
-            Optim.BFGS(; initial_stepnorm = 0.01, linesearch = LineSearches.BackTracking()),
-            callback = callback_pretrain,
-            maxiters = params.niter_LBFGS,
-        )
-        β = res₁.u
+        println("Improvement due to pretrain: $(losses_pretrain[begin]) --> $(losses_pretrain[end])")
+        β = res₀.u
     end
 
     @info "Start optimization with ADAM"
@@ -124,7 +120,7 @@ function train(
         maxiters = params.niter_ADAM,
         verbose = true,
     )
-    @info "Training loss after $(length(losses)) iterations: $(losses[end])"
+    # @info "Training loss after $(length(losses)) iterations: $(losses[end])"
 
     if params.niter_LBFGS > 0
         @info "Start optimization with LBFGS"
@@ -164,6 +160,7 @@ function train(
     end
 
     return Results(
+        params = params,
         θ = θ_trained,
         u0 = u0_trained,
         U = U,
@@ -172,5 +169,6 @@ function train(
         fit_directions = fit_directions,
         fit_rotations = fit_rotations,
         losses = losses,
+        losses_dict = loss_dict
     )
 end

@@ -10,7 +10,7 @@ Training parameters
     tmax::F
     u0::Union{Vector{F},Nothing}
     ωmax::F
-    reg::Union{Nothing,Array}
+    reg::Union{Nothing,Array} = nothing
     train_initial_condition::Bool = false
     multiple_shooting::Bool = false
     weighted::Bool = false

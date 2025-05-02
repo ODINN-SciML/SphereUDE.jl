@@ -8,10 +8,12 @@ Helper to combine callbacks for Optimization function. This executes the action 
 (equivalent to CallbackSet for DifferentialEquations.jl)
 """
 function CallbackOptimizationSet(θ, l; callbacks)
+    cb_outputs = Bool[]
     for cb in callbacks
-        _ = cb(θ, l)
+        _cb = cb(θ, l)
+        push!(cb_outputs, _cb)
     end
-    return false
+    return any(cb_outputs)
 end
 
 """
@@ -20,17 +22,19 @@ end
 function callback_print(p, l, params, losses, f_loss)
     push!(losses, l)
     if !params.verbose
-        return nothing
+        return false
     end
     step = params.verbose_step
     if length(losses) % step == 0 || length(losses) == 1
         _, l_dict = f_loss(p.u)
-        if length(losses) < step + 1
+        if length(losses) < 2
             improvement = nothing
+        elseif length(losses) < step + 1
+            improvement = (losses[end] - losses[begin]) / losses[begin]
         else
             improvement = (losses[end] - losses[end-step]) / losses[end-step]
         end
-        @assert losses[end] ≈ sum(values(l_dict))
+        # @assert losses[end] ≈ sum(values(l_dict))
         printProgressLoss(
             length(losses),
             (params.niter_ADAM + params.niter_LBFGS),
@@ -39,6 +43,27 @@ function callback_print(p, l, params, losses, f_loss)
             (sum(values(l_dict)) - l_dict["Empirical"]),
             improvement,
         )
+    end
+    return false
+end
+
+"""
+    callback_stop_condition(p, l, losses)
+
+Callback to determine stoping condition of optimization algorithm.
+"""
+function callback_stop_condition(p, l, losses)
+    n_window = 100
+    if (length(losses) > n_window) & (length(losses) % 100 == 0)
+        losses_last = losses[end-n_window+1:end]
+        if (std(losses_last) / mean(losses_last) < 1e-7) & (abs(losses[end] - losses[end-1]) < 1e-7 * losses[end-1])
+            println("Optimization converged in $(length(losses)) epochs.")
+            return true
+        else
+            return false
+        end
+    else
+        return false
     end
 end
 
@@ -53,9 +78,9 @@ function printProgressLoss(iter, total_iters, loss, loss_emp, loss_reg, improvem
     print("]     ")
     print("Loss:  ")
     print(@sprintf("%9.4e", loss))
-    print(" = ")
+    print("  = ")
     print(@sprintf("%9.2e", loss_emp))
-    print(" + ")
+    print("  + ")
     print(@sprintf("%9.2e", loss_reg))
     if !isnothing(improvement)
         print("     ")

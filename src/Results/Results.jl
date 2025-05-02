@@ -6,6 +6,7 @@ abstract type AbstractResult end
 Final results
 """
 @kwdef struct Results{F<:AbstractFloat} <: AbstractResult
+    params::SphereParameters
     θ::ComponentVector
     u0::Vector{F}
     U::Lux.AbstractLuxLayer
@@ -14,4 +15,5 @@ Final results
     fit_directions::Matrix{F}
     fit_rotations::Matrix{F}
     losses::Vector{F}
+    losses_dict::Dict
 end
