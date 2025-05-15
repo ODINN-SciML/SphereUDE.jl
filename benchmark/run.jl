@@ -43,21 +43,25 @@ data = SphereData(times = times_samples, directions = X, kappas = nothing, L = n
 ### Types of regularization to benchmark
 regularization_types = [
     nothing,
-    [Regularization(order = 0, power = 1.0, λ = 0.1, diff_mode = nothing)],
-    [Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = FiniteDifferences(1e-6))],
-    [Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = LuxNestedAD())],
+    # [Regularization(order = 0, power = 1.0, λ = 0.1, diff_mode = nothing)],
+    # [Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = FiniteDiff(1e-6))],
+    # [Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = LuxNestedAD())],
 ]
 
 sensealg_types = [
-    GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
+    # GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
+    SphereUDE.DummyAdjoint(),
     InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
     BacksolveAdjoint(),
-    BacksolveAdjoint(autojacvec = ReverseDiffVJP(false), checkpointing = false)
+    SphereBackSolveAdjoint()
+    # BacksolveAdjoint(autojacvec = ReverseDiffVJP(false), checkpointing = false)
 ]
+
+tolerances = [1e-6, 1e-12]
 
 # BenchmarkTools evaluates things at global scope
 params_benchmark = []
-for regs in regularization_types, sensealg in sensealg_types
+for regs in regularization_types, sensealg in sensealg_types, tol in tolerances
     params = SphereParameters(
         tmin = tspan[1],
         tmax = tspan[2],
@@ -66,8 +70,8 @@ for regs in regularization_types, sensealg in sensealg_types
         multiple_shooting = false,
         u0 = [0.0, 0.0, -1.0],
         ωmax = ω₀,
-        reltol = 1e-12,
-        abstol = 1e-12,
+        reltol = tol,
+        abstol = tol,
         niter_ADAM = 11,
         niter_LBFGS = 0,
         verbose = false,
@@ -77,7 +81,7 @@ for regs in regularization_types, sensealg in sensealg_types
 end
 
 for params in params_benchmark
-    println("## Benchmark of $(params.reg), $(params.sensealg)")
+    println("## Benchmark of $(params.reg), $(params.sensealg), tolerance = $(params.reltol)")
     println("> Training for a total of $(params.niter_ADAM+params.niter_LBFGS) epochs")
     trial = @benchmark train(data, $params, $rng, nothing, nothing)
     display(trial)

@@ -31,13 +31,6 @@ function train(
         β = ComponentVector{Float64}(θ = θ)
     end
 
-    # Closure of the ODE update for solve
-    ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
-
-    # TODO: Remove this global variable from here
-    global prob_nn =
-        ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
-
     ### Callback
     losses = Float64[]
     callback_print_closure(p, l) = callback_print(p, l, params, losses, f_loss)
@@ -89,23 +82,24 @@ function train(
     end
 
     @info "Start optimization with ADAM"
-    if params.customgrad
+    # if params.customgrad
+    if isa(params.sensealg, SciMLBase.AbstractAdjointSensitivityAlgorithm)
+        optf = Optimization.OptimizationFunction(
+            (β, _p) -> (first ∘ f_loss)(β),
+            params.adtype
+            )
+    elseif isa(params.sensealg, AbstractAdjointMethod)
         @info "Training with custom gradient method."
 
         # Closure functions to deliver data loader
         loss_function(_β, _p) = (first ∘ f_loss)(_β)
-        loss_function_grad(_dβ, _β, _p) = rotation_grad!(_dβ, _β, only(_p))
+        loss_grad!(_dβ, _β, _p) = rotation_grad!(_dβ, _β, data, params, U, st, params.sensealg)
 
         optf = Optimization.OptimizationFunction(
             loss_function,
-            grad = rotation_grad!,
+            # grad = rotation_grad!,
+            grad = loss_grad!,
             NoAD(),
-            )
-    else
-        # TODO: I think we should change the order of the parameters here, this is confusing
-        optf = Optimization.OptimizationFunction(
-            (β, _p) -> (first ∘ f_loss)(β),
-            params.adtype
             )
     end
 
@@ -149,7 +143,7 @@ function train(
 
     # Final Fit
     fit_times = collect(range(params.tmin, params.tmax, length = 1000))
-    fit_directions = predict(β_trained, params, fit_times)
+    fit_directions = predict(β_trained, params, fit_times, U, st)
     fit_rotations = reduce(hcat, (t -> predict_L(t, U, β_trained.θ, st)).(fit_times))
 
     # Recover final balance between different terms involved in the loss function to assess hyperparameter selection.

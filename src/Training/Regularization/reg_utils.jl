@@ -56,26 +56,26 @@ function regularization(
             ])
 
             # Test every a few iterations that AD is working properly
-            ignore() do
-                if rand(Bernoulli(0.001))
-                    l_AD = sum([
-                        weights[j] * norm(Jac[:, 1, j])^reg.power for
-                        j = 1:params.n_quadrature
-                    ])
-                    l_FD = quadrature(
-                        t -> norm(central_fdm(τ -> smodel([τ]), t, 1e-5))^reg.power,
-                        params.tmin,
-                        params.tmax,
-                        params.n_quadrature,
-                    )
-                    if abs(l_AD - l_FD) > 5e-2 * abs(l_FD)
-                        @warn "[SphereUDE] Nested AD is giving significant different results than Finite Differences."
-                        @printf "[SphereUDE] Regularization with AD: %.9f vs %.9f using Finite Differences" l_AD l_FD
-                    end
-                end
-            end
+            # ignore() do
+            #     if rand(Bernoulli(0.001))
+            #         l_AD = sum([
+            #             weights[j] * norm(Jac[:, 1, j])^reg.power for
+            #             j = 1:params.n_quadrature
+            #         ])
+            #         l_FD = quadrature(
+            #             t -> norm(central_fdm(τ -> smodel([τ]), t, 1e-5))^reg.power,
+            #             params.tmin,
+            #             params.tmax,
+            #             params.n_quadrature,
+            #         )
+            #         if abs(l_AD - l_FD) > 5e-2 * abs(l_FD)
+            #             @warn "[SphereUDE] Nested AD is giving significant different results than Finite Differences."
+            #             @printf "[SphereUDE] Regularization with AD: %.9f vs %.9f using Finite Differences" l_AD l_FD
+            #         end
+            #     end
+            # end
 
-        elseif typeof(reg.diff_mode) <: FiniteDifferences
+        elseif typeof(reg.diff_mode) <: FiniteDiff
 
             l_ += quadrature(
                 t -> norm(central_fdm(τ -> smodel([τ]), t, reg.diff_mode.ϵ))^reg.power,

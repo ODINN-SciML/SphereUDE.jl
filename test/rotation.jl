@@ -12,7 +12,8 @@ Random.seed!(rng, 666)
 
 function test_single_rotation(;
     repeat_times = false,
-    customgrad = false
+    use_regularization = true,
+    sensealg = sensealg
     )
 
     # Total time simulation
@@ -46,15 +47,19 @@ function test_single_rotation(;
 
     data = SphereData(times = times_samples, directions = X, kappas = nothing, L = nothing)
 
-    regs = [
-        Regularization(
-            order = 1,
-            power = 1.0,
-            λ = 0.1,
-            diff_mode = FiniteDifferences(1e-6),
-        ),
-        Regularization(order = 0, power = 2.0, λ = 0.001, diff_mode = nothing),
-    ]
+    if use_regularization
+        regs = [
+            Regularization(
+                order = 1,
+                power = 1.0,
+                λ = 0.1,
+                diff_mode = FiniteDiff(1e-6),
+            ),
+            Regularization(order = 0, power = 2.0, λ = 0.001, diff_mode = nothing),
+        ]
+    else
+        regs = nothing
+    end
 
     params = SphereParameters(
         tmin = tspan[1],
@@ -69,8 +74,9 @@ function test_single_rotation(;
         niter_ADAM = 201,
         niter_LBFGS = 201,
         verbose_step = 50,
-        sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
-        customgrad = customgrad
+        # sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
+        sensealg = sensealg
+        # customgrad = customgrad
     )
 
     results = train(data, params, rng, nothing, nothing)

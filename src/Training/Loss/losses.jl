@@ -16,7 +16,7 @@ function loss(
     # Record the value of each individual loss to the total loss function for hyperparameter selection.
     loss_dict = Dict()
 
-    l_emp = loss_empirical(β, data, params)
+    l_emp = loss_empirical(β, data, params, U, st)
 
     loss_dict["Empirical"] = l_emp
 
@@ -56,16 +56,18 @@ function loss_empirical(
     β::ComponentVector,
     data::AD,
     params::AP,
+    U::Chain,
+    st::NamedTuple,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Predict trajectory on times associated to dataset
     if data.repeat_times
         times = data.times_unique
-        u_unique = predict(β, params, times)
+        u_unique = predict(β, params, times, U, st)
         u_ = u_unique[:, data.times_unique_inverse]
     else
         times = data.times
-        u_ = predict(β, params, times)
+        u_ = predict(β, params, times, U, st)
     end
 
     if params.weighted
@@ -101,7 +103,18 @@ end
 """
 Empirical Prediction function
 """
-function predict(β::ComponentVector, params::AP, T::Vector) where {AP<:AbstractParameters}
+function predict(
+    β::ComponentVector,
+    params::AP,
+    T::Vector,
+    U::Chain,
+    st::NamedTuple
+    ) where {AP<:AbstractParameters}
+
+    # Closure of the ODE update for solve
+    ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
+
+    prob_nn = ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
 
     if params.train_initial_condition
         _prob = remake(
