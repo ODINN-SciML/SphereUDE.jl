@@ -24,6 +24,13 @@ function ude_rotation!(du, u, p, t, U, st)
     du .= cross(L, u)
 end
 
+function ude_rotation(u, p, t, U, st)
+    # Angular momentum given by network prediction
+    L = predict_L(t, U, p, st)
+    du = cross(L, u)
+    return SVector{3,Float64}(du)
+end
+
 """
     callback_proj(p, l, params)
 

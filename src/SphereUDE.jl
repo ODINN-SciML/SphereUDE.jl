@@ -16,6 +16,7 @@ using PythonCall, CondaPkg
 using PrettyTables, Printf
 using SciMLBase: NoAD
 using MLUtils: DataLoader
+using StaticArrays
 
 # Debugging
 using Infiltrator

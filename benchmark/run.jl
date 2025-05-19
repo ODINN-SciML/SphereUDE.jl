@@ -4,8 +4,10 @@ Pkg.activate(dirname(Base.current_project()))
 using SphereUDE
 using BenchmarkTools
 using Logging
+using PrettyTables
+using ColorSchemes
 Logging.disable_logging(Logging.Info)
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2 * 60
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 60
 
 using Distributions, Statistics, LinearAlgebra
 using SciMLSensitivity
@@ -48,25 +50,30 @@ regularization_types = [
     # [Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = LuxNestedAD())],
 ]
 
+numerical_solver = [SphereUDE.Tsit5()]
+
 sensealg_types = [
-    # GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
-    SphereUDE.DummyAdjoint(),
+    # SphereUDE.DummyAdjoint(),
+    GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
     InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
-    BacksolveAdjoint(),
+    # BacksolveAdjoint(),
+    # BacksolveAdjoint(autojacvec = ReverseDiffVJP(false), checkpointing = false),
     SphereBackSolveAdjoint()
-    # BacksolveAdjoint(autojacvec = ReverseDiffVJP(false), checkpointing = false)
 ]
 
 tolerances = [1e-6, 1e-12]
+in_out_place = [false, true]
+# tolerances = [1e-6]
 
 # BenchmarkTools evaluates things at global scope
 params_benchmark = []
-for regs in regularization_types, sensealg in sensealg_types, tol in tolerances
+for tol in tolerances, regs in regularization_types, place in in_out_place, sensealg in sensealg_types
     params = SphereParameters(
         tmin = tspan[1],
         tmax = tspan[2],
         reg = regs,
         train_initial_condition = false,
+        out_of_place = place,
         multiple_shooting = false,
         u0 = [0.0, 0.0, -1.0],
         ωmax = ω₀,
@@ -80,10 +87,41 @@ for regs in regularization_types, sensealg in sensealg_types, tol in tolerances
     push!(params_benchmark, params)
 end
 
+benchmark_data = []
+header = (
+    ["Sensitivity", "Reg", "Tol", "out-of-place", "Time", "Alloc", "Memory"],
+    ["", "", "", "","[ns]", "", "bites"]
+)
+
 for params in params_benchmark
     println("## Benchmark of $(params.reg), $(params.sensealg), tolerance = $(params.reltol)")
     println("> Training for a total of $(params.niter_ADAM+params.niter_LBFGS) epochs")
     trial = @benchmark train(data, $params, $rng, nothing, nothing)
-    display(trial)
-    println("")
+    # display(trial)
+    # println("")
+    push!(benchmark_data, ["$(params.sensealg)", "$(params.reg)", "$(params.reltol)", "$(params.out_of_place)", mean(trial.times), trial.allocs, trial.memory])
 end
+
+h1 = Highlighter(
+    (data, i, j) -> j == 4 && data[i, j] >= mean(data[2:end, 4]),
+    bold       = true,
+    foreground = :red )
+
+h2 = Highlighter(
+    (data,i,j)->j == 4 && data[i, j] <= 1.2 * minimum(data[2:end,4]),
+    bold       = true,
+    foreground = :green
+)
+
+formated_benchmark_data = permutedims(hcat(benchmark_data...))
+formated_benchmark_data[:,1] .=  (x -> split(x, "{")[begin]).(formated_benchmark_data[:,1])
+
+pretty_table(
+    formated_benchmark_data;
+    sortkeys = true,
+    header = header,
+    linebreaks = true,
+    header_crayon = crayon"yellow bold",
+    highlighters = (h1, h2),
+    formatters = ft_printf("%.2e")
+    )

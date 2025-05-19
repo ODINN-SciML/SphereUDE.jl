@@ -112,9 +112,23 @@ function predict(
     ) where {AP<:AbstractParameters}
 
     # Closure of the ODE update for solve
-    ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
-
-    prob_nn = ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
+    if params.out_of_place
+        ude_rotation_closure(u, p, t) = ude_rotation(u, p, t, U, st)
+        prob_nn = ODEProblem(
+            ude_rotation_closure,
+            params.u0,
+            [params.tmin, params.tmax],
+            β.θ
+            )
+    else
+        ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
+        prob_nn = ODEProblem(
+            ude_rotation_closure!,
+            params.u0,
+            [params.tmin, params.tmax],
+            β.θ
+            )
+    end
 
     if params.train_initial_condition
         _prob = remake(
@@ -137,6 +151,7 @@ function predict(
         _prob,
         params.solver,
         saveat = T,
+        save_everystep = false,
         abstol = params.abstol,
         reltol = params.reltol,
         sensealg = params.sensealg,
