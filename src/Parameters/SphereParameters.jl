@@ -20,7 +20,7 @@ Training parameters
     reltol::F
     abstol::F
     n_quadrature::I
-    solver::OrdinaryDiffEqCore.OrdinaryDiffEqAlgorithm
+    solver::AbstractDEAlgorithm
     adtype::Optimization.AbstractADType
     sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm, ADJ}
     out_of_place::Bool
@@ -30,6 +30,7 @@ Training parameters
     verbose_step::I
 end
 
+# Inner constructor
 function SphereParameters(;
     tmin::F,
     tmax::F,
@@ -45,11 +46,11 @@ function SphereParameters(;
     reltol::F = 1e-6,
     abstol::F = 1e-6,
     n_quadrature::I = 100,
-    solver::OrdinaryDiffEqCore.OrdinaryDiffEqAlgorithm = Tsit5(),
+    solver::AbstractDEAlgorithm = Tsit5(),
     adtype::Optimization.AbstractADType = AutoZygote(),
     sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm, ADJ} =
         QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
-    out_of_place::Bool = true,
+    out_of_place::Bool = false,
     pretrain::Bool = false,
     hyperparameter_balance::Bool = false,
     verbose::Bool = true,

@@ -7,10 +7,10 @@ export CallbackOptimizationSet, callback_print
 Helper to combine callbacks for Optimization function. This executes the action of each callback.  
 (equivalent to CallbackSet for DifferentialEquations.jl)
 """
-function CallbackOptimizationSet(θ, l; callbacks)
+function CallbackOptimizationSet(p, l; callbacks)
     cb_outputs = Bool[]
     for cb in callbacks
-        _cb = cb(θ, l)
+        _cb = cb(p, l)
         push!(cb_outputs, _cb)
     end
     return any(cb_outputs)
@@ -26,7 +26,15 @@ function callback_print(p, l, params, losses, f_loss)
     end
     step = params.verbose_step
     if length(losses) % step == 0 || length(losses) == 1
-        _, l_dict = f_loss(p.u)
+        _l, l_dict = f_loss(p.u)
+        if !isapprox(l, _l, rtol = 1e-2) & params.verbose & (length(losses) > 200)
+            SphereUDE.@infiltrate
+            @warn """
+            Loss function computed during epoch training (loss = $(l)) does not coincide
+            with the one computed after training (loss = $(_l)). This can be cause by an
+            error in the code or by randomness inside the loss function.
+            """
+        end
         if length(losses) < 2
             improvement = nothing
         elseif length(losses) < step + 1
@@ -34,7 +42,6 @@ function callback_print(p, l, params, losses, f_loss)
         else
             improvement = (losses[end] - losses[end-step]) / losses[end-step]
         end
-        # @assert losses[end] ≈ sum(values(l_dict))
         printProgressLoss(
             length(losses),
             (params.niter_ADAM + params.niter_LBFGS),

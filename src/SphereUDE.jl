@@ -15,6 +15,7 @@ using ComponentArrays
 using PythonCall, CondaPkg
 using PrettyTables, Printf
 using SciMLBase: NoAD
+using DiffEqBase: AbstractDEAlgorithm
 using MLUtils: DataLoader
 using StaticArrays
 

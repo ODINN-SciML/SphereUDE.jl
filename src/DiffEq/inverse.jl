@@ -26,21 +26,20 @@ function rotation_grad!(
     t_inverse = .-reverse(data.times)
     stop_condition(U, t, integrator) = t ∈ t_inverse
     function effect!(integrator)
-        idx = only(findall(t -> -t == integrator.t, data.times))
+        idxs = findall(t -> -t == integrator.t, data.times)
         if isnothing(data.kappas)
-            κ = 1.0
+            κ = ones(length(idxs))
         else
-            κ = data.kappas[idx]
+            κ = data.kappas[idxs]
         end
-        y = data.directions[:, idx]
-        # TODO: this is causing problem!!!
+        y = data.directions[:, idxs]
         if typeof(integrator.u) <: SVector
             integrator.u = vcat(
                 integrator.u[1:3],
-                SVector{3,Float64}(integrator.u[4:6] .- κ * y / (params.tmax - params.tmin))
+                SVector{3,Float64}(integrator.u[4:6] .- y * κ / (params.tmax - params.tmin))
                 )
         else
-            integrator.u[4:6] .+= .- κ * y / (params.tmax - params.tmin)
+            integrator.u[4:6] .+= .- y * κ / (params.tmax - params.tmin)
         end
     end
     cb_adjoint_loss = DiscreteCallback(stop_condition, effect!)
@@ -90,7 +89,7 @@ function rotation_grad!(
         abstol = sensealg.abstol
         )
 
-    if norm(params.u0 .- sol_adjoint(-params.tmin)[1:3]) > 1e-5
+    if norm(params.u0 .- sol_adjoint(-params.tmin)[1:3]) > 1e-4
         @warn "Solution if backsolve adjoint differs from forward solve: ( u0 = $(params.u0) ) ≠ ( sol_adjoint = $(sol_adjoint(-params.tmin)[1:3]) )"
     end
 

@@ -151,7 +151,9 @@ function predict(
         _prob,
         params.solver,
         saveat = T,
-        save_everystep = false,
+        # Do not set save_everystep to any value. This needs to be free fro the sensitivity
+        # method to work properly.
+        # save_everystep = save_everystep,
         abstol = params.abstol,
         reltol = params.reltol,
         sensealg = params.sensealg,
@@ -171,9 +173,6 @@ function predict(
 
     return Array(sol)
 end
-
-
-
 
 """
 Loss function to be called for multiple shooting

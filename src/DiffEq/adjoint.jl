@@ -7,7 +7,7 @@ abstract type AbstractAdjointMethod end
     F <: AbstractFloat,
     I <: Integer
 } <: AbstractAdjointMethod
-    solver::Any = Tsit5()
+    solver::AbstractDEAlgorithm = Tsit5()
     reltol::F = 1e-6
     abstol::F = 1e-6
     n_quadrature::I = 100

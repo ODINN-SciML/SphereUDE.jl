@@ -66,7 +66,7 @@ function train(
             return false
         end
         # Define the loss function with just empirical component
-        f_loss_empirical(β) = loss_empirical(β, data, params)
+        f_loss_empirical(β) = loss_empirical(β, data, params, U, st)
         optf₀ =
             Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
         optprob₀ = Optimization.OptimizationProblem(optf₀, β)
@@ -97,15 +97,15 @@ function train(
 
         optf = Optimization.OptimizationFunction(
             loss_function,
-            # grad = rotation_grad!,
             grad = loss_grad!,
             NoAD(),
             )
     end
 
     # Create dummy data loader
-    train_loader = DataLoader([1.0], batchsize = 1, shuffle = false)
+    train_loader = DataLoader([666.0], batchsize = 1, shuffle = false)
     optprob = Optimization.OptimizationProblem(optf, β, train_loader)
+    # optprob = Optimization.OptimizationProblem(optf, β)
 
     res1 = Optimization.solve(
         optprob,
@@ -119,13 +119,20 @@ function train(
     if params.niter_LBFGS > 0
         @info "Start optimization with LBFGS"
         optprob2 = Optimization.OptimizationProblem(optf, res1.u)
-        # res2 = Optimization.solve(optprob2, Optim.LBFGS(), callback=callback, maxiters=params.niter_LBFGS) #, reltol=1e-6)
         res2 = Optimization.solve(
             optprob2,
-            Optim.BFGS(; initial_stepnorm = 0.01, linesearch = LineSearches.BackTracking()),
+            Optim.BFGS(;
+                initial_stepnorm = 0.01,
+                # linesearch = LineSearches.BackTracking(iterations = 10)
+                linesearch = LineSearches.HagerZhang()
+                ),
             callback = callback,
             maxiters = params.niter_LBFGS,
-        ) #, reltol=1e-6)
+            allow_f_increases = true,
+            successive_f_tol = 10,
+            # g_tol = NaN # This disables stop criteria!
+            g_abstol = 1e-12 # Toletance in the norm of the gradient
+        )
     else
         res2 = res1
     end
