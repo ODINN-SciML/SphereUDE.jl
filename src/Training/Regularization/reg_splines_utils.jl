@@ -15,7 +15,7 @@ function cubic_regularization(
 
     # Create prediction of solution time series in integration points
     nodes, weights = quadrature(params.tmin, params.tmax, params.n_quadrature)
-    u_ = predict(β, params, nodes)
+    u_ = predict(β, params, nodes, U, st)
 
     if typeof(reg.diff_mode) <: LuxNestedAD
         # Automatic Differentiation
@@ -38,7 +38,7 @@ function cubic_regularization(
 
         L_cross_u = [cross(Jac[:, 1, j], u_[:, j]) for j = 1:params.n_quadrature]
 
-    elseif typeof(reg.diff_mode) <: FiniteDifferences
+    elseif typeof(reg.diff_mode) <: FiniteDiff
         L_ = [central_fdm(τ -> smodel([τ]), t, reg.diff_mode.ϵ) for t in nodes]
         L_cross_u = [cross(L_[j], u_[:, j]) for j = 1:params.n_quadrature]
 

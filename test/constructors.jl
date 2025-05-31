@@ -31,7 +31,7 @@ function test_param_constructor()
         abstol = 1e-6,
     )
 
-    reg1 = Regularization(order = 0, power = 2.0, λ = 0.1, diff_mode = FiniteDifferences())
+    reg1 = Regularization(order = 0, power = 2.0, λ = 0.1, diff_mode = FiniteDiff())
     reg2 = Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = LuxNestedAD())
 
     params2 = SphereParameters(
