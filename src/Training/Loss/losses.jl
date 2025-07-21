@@ -74,27 +74,27 @@ function loss_empirical(
         if data.repeat_times
             @error "Repeat times not implemented for weighted sum."
         end
-        weigths = quadrature(
+        weights = quadrature(
             params.tmin,
             params.tmax,
             times;
             method = :Linear
             ) ./ (params.tmax - params.tmin)
     else
-        weigths = 1 / (params.tmax - params.tmin)
+        weights = 1 / (params.tmax - params.tmin)
     end
 
     # Empirical error
     if isnothing(data.kappas)
         # @ignore_derivatives begin
         #     # TODO: I should ensure the output is directly norm one and avoid this test here
-        #     @assert isapprox(2.0 * sum(weigths .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weigths .* abs2.(u_ .- data.directions)), rtol = 1e-3)
+        #     @assert isapprox(2.0 * sum(weights .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weights .* abs2.(u_ .- data.directions)), rtol = 1e-3)
         # end
-        return sum(weigths .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
+        return sum(weights .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
     else
-        return sum(weigths .* data.kappas .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
+        return sum(weights .* data.kappas .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
         # @ignore_derivatives begin
-        #     @assert isapprox(2.0 * sum(weigths .*  data.kappas .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weigths .* data.kappas .* abs2.(u_ .- data.directions)), rtol = 1e-3)
+        #     @assert isapprox(2.0 * sum(weights .*  data.kappas .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weights .* data.kappas .* abs2.(u_ .- data.directions)), rtol = 1e-3)
         # end
     end
 

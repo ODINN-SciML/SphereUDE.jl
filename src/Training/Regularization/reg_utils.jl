@@ -16,7 +16,7 @@ function regularization(
     smodel = StatefulLuxLayer{true}(U, θ, st)
 
     # Define number of elements for quadrature
-    nodes, weights = extract_nodes_weigths(params.tmin, params.tmax, params.quadrature)
+    nodes, weights = extract_nodes_weights(params.tmin, params.tmax, params.quadrature)
     n_quadrature = length(nodes)
 
     l_ = 0.0

@@ -72,7 +72,8 @@ function rotation_grad!(
     end
 
     # Where the adjoint needs to be evaluated
-    nodes, weigths = quadrature(params.tmin, params.tmax, sensealg.n_quadrature)
+    nodes, weights = extract_nodes_weights(params.tmin, params.tmax, params.quadrature)
+    n_quadrature = length(nodes)
     t_nodes_rev = .- reverse(nodes)
 
     # Solve reverse adjoint PDE with dense output
@@ -95,14 +96,14 @@ function rotation_grad!(
 
     # Now we compute the contribution to the loss function.
     dLdθ = zeros(size(β.θ))
-    for i in 1:sensealg.n_quadrature
+    for i in 1:n_quadrature
         t = nodes[i]
         τ = -t
         ∇θ, = Zygote.jacobian(
             _θ -> StatefulLuxLayer{true}(U, _θ, st)([t]),
             β.θ
         )
-        dLdθ .+= weigths[i] * mapslices(
+        dLdθ .+= weights[i] * mapslices(
             x -> dot(sol_adjoint(τ)[4:6], cross(x, sol_adjoint(τ)[1:3])),
             ∇θ;
             dims = 1

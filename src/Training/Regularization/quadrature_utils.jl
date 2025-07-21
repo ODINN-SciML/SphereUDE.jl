@@ -1,30 +1,30 @@
-export extract_nodes_weigths
+export extract_nodes_weights
 
-function extract_nodes_weigths(
+function extract_nodes_weights(
     t₀::F,
     t₁::F,
     quadrature::GaussQuadrature
 ) where {F<:AbstractFloat}
 
     # Extract nodes and weightds for numerical integration in [0,1]
-    @ignore_derivatives nodes, weigths = gausslegendre(quadrature.n_nodes)
+    @ignore_derivatives nodes, weights = gausslegendre(quadrature.n_nodes)
     # Rescale nodes and weights to desired interval
     nodes = (t₀ + t₁) / 2 .+ nodes * (t₁ - t₀) / 2
-    weigths = (t₁ - t₀) / 2 * weigths
+    weights = (t₁ - t₀) / 2 * weights
 
-    return nodes, weigths
+    return nodes, weights
 end
 
-function extract_nodes_weigths(
+function extract_nodes_weights(
     t₀::F,
     t₁::F,
     quadrature::RandomGaussQuadrature
 ) where {F<:AbstractFloat}
     n_nodes = rand(quadrature.n_nodes_min:quadrature.n_nodes_max)
-    return extract_nodes_weigths(t₀, t₁, GaussQuadrature(n_nodes = n_nodes))
+    return extract_nodes_weights(t₀, t₁, GaussQuadrature(n_nodes = n_nodes))
 end
 
-function extract_nodes_weigths(
+function extract_nodes_weights(
     t₀::F,
     t₁::F,
     quadrature::RandomQuadrature
@@ -36,7 +36,7 @@ function extract_nodes_weigths(
     return nodes, weights
 end
 
-function extract_nodes_weigths(
+function extract_nodes_weights(
     t₀::F,
     t₁::F,
     quadrature::CustomQuadrature
@@ -60,7 +60,7 @@ function extract_nodes_weigths(
             V = [nodes[i]^j for j in 0:n-1, i in 1:n]
             # Right-hand side: exact integrals of monomials
             b = [(t₁^(k + 1) - t₀^(k + 1)) / (k + 1) for k in 0:n-1]
-            # solve for the weigths
+            # solve for the weights
             weights = V \ b
         elseif quadrature.interpolation_method == :Linear
             midpoints = (nodes[1:end-1] .+ nodes[2:end] ) ./ 2.0
