@@ -16,29 +16,25 @@ function regularization(
     smodel = StatefulLuxLayer{true}(U, θ, st)
 
     # Define number of elements for quadrature
-    # We do this randomly in each epoch to avoid the high-frequency neural network
-    # learning discrete peaks.
-    n_quadrature = params.n_quadrature + rand(-20:20)
-    nodes, weights = quadrature(params.tmin, params.tmax, n_quadrature)
+    nodes, weights = extract_nodes_weigths(params.tmin, params.tmax, params.quadrature)
+    n_quadrature = length(nodes)
 
     l_ = 0.0
     if reg.order == 0
 
-        l_ += quadrature(
+        l_ += numerical_integral(
             t -> norm(smodel([t]))^reg.power,
             params.tmin,
             params.tmax,
-            n_quadrature,
+            params.quadrature,
         )
 
     elseif reg.order == 1
 
         if typeof(reg.diff_mode) <: LuxNestedAD
 
-            # nodes, weights = quadrature(params.tmin, params.tmax, params.n_quadrature)
-
             if reg.diff_mode.method == "ForwardDiff"
-                # Jac = ForwardDiff.jacobian(smodel, reshape(nodes, 1, params.n_quadrature))
+                # This is giving now the wrong results!!!
                 Jac = batched_jacobian(
                     smodel,
                     AutoForwardDiff(),
@@ -46,7 +42,6 @@ function regularization(
                 )
             elseif reg.diff_mode.method == "Zygote"
                 # This can also be done with Zygote in reverse mode
-                # Jac = Zygote.jacobian(smodel, reshape(nodes, 1, params.n_quadrature))[1]
                 Jac = batched_jacobian(
                     smodel,
                     AutoZygote(),
@@ -57,28 +52,28 @@ function regularization(
             end
 
             # Compute the final agregation to the loss
-            l_ += sum([
+            l_AD = sum([
                 weights[j] * norm(Jac[:, 1, j])^reg.power for j = 1:n_quadrature
             ])
+            l_ += l_AD
 
             # Test every a few iterations that AD is working properly
             ignore() do
-                if rand(Bernoulli(0.001))
-                    l_AD = sum([
-                        weights[j] * norm(Jac[:, 1, j])^reg.power for
-                        j = 1:n_quadrature
-                    ])
-                    l_FD = quadrature(
+                if rand(Bernoulli(0.1))
+                    l_FD = numerical_integral(
                         t -> norm(central_fdm(τ -> smodel([τ]), t, 1e-8))^reg.power,
                         params.tmin,
                         params.tmax,
-                        n_quadrature,
+                        params.quadrature,
                     )
                     if !isapprox(l_AD, l_FD, rtol = 1e-1)
                         @warn """
                         Nested AD is giving significant different results than Finite
                         Differences.
-                        Regularization with AD: $(l_AD) vs $(l_FD) using Finite Differences
+                        Regularization with AD: $(l_AD) vs $(l_FD) using Finite Differences.
+                        This can be produced by errors in the batched AD caused by
+                        Lux.WrappedFunction and how this is done in batched_jacobian().
+                        See https://discourse.julialang.org/t/using-lux-wrappedfunction-for-pre-post-processing-in-lux-model/129254
                         """
                     end
                 end
@@ -86,23 +81,23 @@ function regularization(
 
         elseif typeof(reg.diff_mode) <: FiniteDiff
 
-            l_ += quadrature(
+            l_ += numerical_integral(
                 t -> norm(central_fdm(τ -> smodel([τ]), t, reg.diff_mode.ϵ))^reg.power,
                 params.tmin,
                 params.tmax,
-                n_quadrature,
+                params.quadrature,
             )
 
         elseif typeof(reg.diff_mode) <: ComplexStepDifferentiation
 
-            l_ += quadrature(
+            l_ += numerical_integral(
                 t ->
                     norm(
                         complex_step_differentiation(τ -> smodel([τ]), t, reg.diff_mode.ϵ),
                     )^reg.power,
                 params.tmin,
                 params.tmax,
-                n_quadrature,
+                params.quadrature,
             )
 
         else

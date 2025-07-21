@@ -5,7 +5,7 @@ abstract type AbstractParameters end
 """
 Training parameters
 """
-@kwdef struct SphereParameters{F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod} <: AbstractParameters
+@kwdef struct SphereParameters{F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:AbstractQuadrature} <: AbstractParameters
     tmin::F
     tmax::F
     u0::Union{Vector{F},SVector{3,F},Nothing}
@@ -19,7 +19,7 @@ Training parameters
     niter_LBFGS::I
     reltol::F
     abstol::F
-    n_quadrature::I
+    quadrature::Q
     solver::AbstractDEAlgorithm
     adtype::Optimization.AbstractADType
     sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm, ADJ}
@@ -45,7 +45,7 @@ function SphereParameters(;
     niter_LBFGS::I = 2000,
     reltol::F = 1e-6,
     abstol::F = 1e-6,
-    n_quadrature::I = 100,
+    quadrature::Union{Q,I} = 100,
     solver::AbstractDEAlgorithm = Tsit5(),
     adtype::Optimization.AbstractADType = AutoZygote(),
     sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm, ADJ} =
@@ -55,7 +55,7 @@ function SphereParameters(;
     hyperparameter_balance::Bool = false,
     verbose::Bool = true,
     verbose_step::I = 100,
-    ) where {F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod}
+    ) where {F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:AbstractQuadrature}
 
     ft = typeof(tmin)
     it = typeof(niter_ADAM)
@@ -77,10 +77,15 @@ function SphereParameters(;
         u0 = SVector{3,ft}(u0)
     end
 
-    params = SphereParameters{ft,it,gt}(
+    if typeof(quadrature) <: Int
+        quadrature = GaussQuadrature(n_nodes = quadrature)
+    end
+    qt = typeof(quadrature)
+
+    params = SphereParameters{ft,it,gt,qt}(
         tmin, tmax, u0, ωmax, reg, train_initial_condition, multiple_shooting, weighted,
         niter_ADAM, ADAM_learning_rate, niter_LBFGS,
-        reltol, abstol, n_quadrature, solver, adtype, sensealg, out_of_place,
+        reltol, abstol, quadrature, solver, adtype, sensealg, out_of_place,
         pretrain, hyperparameter_balance,
         verbose, verbose_step
     )

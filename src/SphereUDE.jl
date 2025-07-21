@@ -24,6 +24,7 @@ using Infiltrator
 
 # Data Types
 include("DiffEq/adjoint.jl")
+include("Training/Regularization/Quadrature.jl")
 include("Parameters/SphereParameters.jl")
 include("Data/SphereData.jl")
 include("Data/data_utils.jl")
@@ -38,6 +39,7 @@ include("Training/ML/numerical_utils.jl")
 include("Training/ML/AD.jl")
 
 # Losses and regularization
+include("Training/Regularization/quadrature_utils.jl")
 include("Training/Regularization/Regularization.jl")
 include("Training/Regularization/reg_utils.jl")
 include("Training/Regularization/reg_splines_utils.jl")

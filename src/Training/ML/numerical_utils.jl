@@ -1,68 +1,14 @@
-export quadrature, central_fdm, complex_step_differentiation
+export numerical_integral, central_fdm, complex_step_differentiation
 
-"""
-    quadrature_integrate
-
-Numerical integral using Gaussian quadrature
-"""
-function quadrature(f::Function, t₀::F, t₁::F, n_quadrature::Int) where {F <: AbstractFloat}
-    nodes, weigths = quadrature(t₀, t₁, n_quadrature)
-    return dot(weigths, f.(nodes))
-end
-
-function quadrature(t₀::F, t₁::F, n_quadrature::Int) where {F <: AbstractFloat}
-    # Ignore AD here since FastGaussQuadrature is using mutating arrays
-    @ignore_derivatives nodes, weigths = gausslegendre(n_quadrature)
-    # ignore() do
-    #     nodes, weigths = gausslegendre(n_quadrature)
-    #     # nodes .+ rand(sampler(Uniform(-0.1,0.1)), n_quadrature)
-    # end
-    nodes = (t₀ + t₁) / 2 .+ nodes * (t₁ - t₀) / 2
-    weigths = (t₁ - t₀) / 2 * weigths
-    return nodes, weigths
-end
-
-function quadrature(
+function numerical_integral(
     f::Function,
     t₀::F,
     t₁::F,
-    nodes::Vector{F},
-    method::Symbol = :Linear
-    ) where {F <: AbstractFloat}
-    weights = quadrature(t₀, t₁, nodes; method = method)
-    return dot(weights, f.(nodes))
-end
+    quadrature::Q
+    ) where {F<:AbstractFloat, Q<:AbstractQuadrature}
 
-function quadrature(
-    t₀::F,
-    t₁::F,
-    nodes::Vector{F};
-    method::Symbol = :Linear
-    ) where {F <: AbstractFloat}
-
-    @assert t₀ <= minimum(nodes) <= maximum(nodes) <= t₁
-    n = length(nodes)
-
-    if method == :Vandermonde
-        """
-        This works quite well for numerical integration but it has the problem that returns
-        (potentially) negative weights, which are not suitable for a loss function.
-        """
-        # Build Vandermonde matrix
-        V = [nodes[i]^j for j in 0:n-1, i in 1:n]
-        # Right-hand side: exact integrals of monomials
-        b = [(t₁^(k + 1) - t₀^(k + 1)) / (k + 1) for k in 0:n-1]
-        # solve for the weigths
-        weights = V \ b
-    elseif method == :Linear
-        midpoints = (nodes[1:end-1] .+ nodes[2:end] ) ./ 2.0
-        edges = [t₀; midpoints; t₁]
-        weights = (edges[2:end] .- edges[1:end-1])
-        @assert sum(weights) ≈ t₁ - t₀
-    else
-        @error "Method $(method) not implemented."
-    end
-    return weights
+    nodes, weigths = extract_nodes_weigths(t₀, t₁, quadrature)
+    return dot(weigths, f.(nodes))
 end
 
 """
