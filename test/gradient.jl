@@ -78,7 +78,7 @@ function test_grad_finite_diff(
     printVecScientific("angle  = ", [angle_FD], thres_angle)
     printVecScientific("relerr = ", [relerr_FD], thres_relerr)
 
-    if typeof(sensealg) <: DummyAdjoint
+    if typeof(sensealg) <: SphereUDE.DummyAdjoint
         @test true
     else
         @test abs(ratio_FD) < thres_ratio

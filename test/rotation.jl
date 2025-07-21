@@ -73,6 +73,7 @@ function test_single_rotation(;
         reg = regs,
         train_initial_condition = false,
         multiple_shooting = false,
+        pretrain = false,
         u0 = [0.0, 0.0, -1.0],
         ωmax = ω₀,
         reltol = 1e-12,
