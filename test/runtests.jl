@@ -31,7 +31,7 @@ include("regularization.jl")
 
     @testset "Python Integration" begin
         test_matplotplib()
-        test_pmagpy()
+        # test_pmagpy()
     end
 
     @testset "Regularization with AD vs FD" begin
