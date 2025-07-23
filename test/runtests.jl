@@ -38,7 +38,10 @@ include("regularization.jl")
         test_quadrature()
     end
 
-    @testset "Custom Adjoint method" test_grad_finite_diff(SphereBackSolveAdjoint(); thres = [4e-3, 1e-6, 4e-3])
+    @testset "Custom Adjoint method" test_grad_finite_diff(
+        SphereBackSolveAdjoint();
+        thres = [4e-3, 1e-6, 4e-3],
+    )
 
     @testset "Inversion" begin
         @testset "Dummy grandient" test_single_rotation(sensealg = SphereUDE.DummyAdjoint())
