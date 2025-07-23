@@ -43,7 +43,10 @@ include("regularization.jl")
     @testset "Inversion" begin
         @testset "Dummy grandient" test_single_rotation(sensealg = SphereUDE.DummyAdjoint())
         @testset "SciMLSensitivity gradient (without regularization)" begin
-            @testset "Interpolating" test_single_rotation(sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)), use_regularization = false)
+            @testset "Interpolating" test_single_rotation(
+                sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
+                use_regularization = false,
+            )
             # @testset "Quadrature" test_single_rotation(sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)), use_regularization = false)
             @testset "Gauss" test_single_rotation(
                 sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
