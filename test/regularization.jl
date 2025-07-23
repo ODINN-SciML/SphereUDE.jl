@@ -32,7 +32,7 @@ function test_quadrature(thres = 1e-4)
         Lux.Dense(2 * n_fourier_features, 10, tanh),
         Lux.Dense(10, 3, tanh),
         # Output function to scale output to have norm less than ωmax
-        Lux.WrappedFunction(x -> scale_norm(ωmax * x; scale = ωmax))
+        Lux.WrappedFunction(x -> scale_norm(ωmax * x; scale = ωmax)),
     )
 
     θ, st = Lux.setup(rng, U)
