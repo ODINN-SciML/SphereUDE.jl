@@ -81,7 +81,7 @@ function test_single_rotation(;
         niter_ADAM = 101,
         niter_LBFGS = 51,
         verbose_step = 50,
-        sensealg = sensealg
+        sensealg = sensealg,
     )
 
     results = train(data, params, rng, nothing, nothing)
