@@ -13,8 +13,8 @@ Random.seed!(rng, 666)
 function test_single_rotation(;
     repeat_times = false,
     use_regularization = true,
-    sensealg = sensealg
-    )
+    sensealg = sensealg,
+)
 
     # Total time simulation
     tspan = [0, 160.0]
@@ -50,18 +50,8 @@ function test_single_rotation(;
 
     if use_regularization
         regs = [
-            Regularization(
-                order = 1,
-                power = 1.0,
-                λ = 1e3,
-                diff_mode = FiniteDiff(1e-6),
-            ),
-            Regularization(
-                order = 0,
-                power = 2.0,
-                λ = 1e-6,
-                diff_mode = nothing
-                ),
+            Regularization(order = 1, power = 1.0, λ = 1e3, diff_mode = FiniteDiff(1e-6)),
+            Regularization(order = 0, power = 2.0, λ = 1e-6, diff_mode = nothing),
         ]
     else
         regs = nothing
@@ -81,7 +71,7 @@ function test_single_rotation(;
         niter_ADAM = 101,
         niter_LBFGS = 51,
         verbose_step = 50,
-        sensealg = sensealg
+        sensealg = sensealg,
     )
 
     results = train(data, params, rng, nothing, nothing)

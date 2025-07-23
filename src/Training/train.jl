@@ -124,14 +124,14 @@ function train(
             Optim.BFGS(;
                 initial_stepnorm = 0.01,
                 # linesearch = LineSearches.BackTracking(iterations = 10)
-                linesearch = LineSearches.HagerZhang()
-                ),
+                linesearch = LineSearches.HagerZhang(),
+            ),
             callback = callback,
             maxiters = params.niter_LBFGS,
             allow_f_increases = true,
             successive_f_tol = 10,
             # g_tol = NaN # This disables stop criteria!
-            g_abstol = 1e-12 # Toletance in the norm of the gradient
+            g_abstol = 1e-12, # Toletance in the norm of the gradient
         )
     else
         res2 = res1

@@ -3,8 +3,16 @@ function test_quadrature(thres = 1e-4)
     rng = Random.default_rng()
     Random.seed!(rng, 613)
 
-    reg_AD = [Regularization(order = 1, power = 2.0, λ = 10.0^6.0, diff_mode = LuxNestedAD())]
-    reg_FD = [Regularization(order = 1, power = 2.0, λ = 10.0^6.0, diff_mode = FiniteDiff(ϵ=1e-8))]
+    reg_AD =
+        [Regularization(order = 1, power = 2.0, λ = 10.0^6.0, diff_mode = LuxNestedAD())]
+    reg_FD = [
+        Regularization(
+            order = 1,
+            power = 2.0,
+            λ = 10.0^6.0,
+            diff_mode = FiniteDiff(ϵ = 1e-8),
+        ),
+    ]
 
     tmin, tmax = 0.0, 1.0
     ωmax = 0.01
@@ -32,7 +40,7 @@ function test_quadrature(thres = 1e-4)
         Lux.Dense(2 * n_fourier_features, 10, tanh),
         Lux.Dense(10, 3, tanh),
         # Output function to scale output to have norm less than ωmax
-        Lux.WrappedFunction(x -> scale_norm(ωmax * x; scale = ωmax))
+        Lux.WrappedFunction(x -> scale_norm(ωmax * x; scale = ωmax)),
     )
 
     θ, st = Lux.setup(rng, U)

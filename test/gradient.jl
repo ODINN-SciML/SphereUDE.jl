@@ -110,7 +110,7 @@ function printVecScientific(baseVarName, v, thres=nothing)
         print(" ")
     end
     if !isnothing(thres)
-        printstyled("< $(thres)"; color=:blue)
+        printstyled("< $(thres)"; color = :blue)
     end
     println("")
 end
