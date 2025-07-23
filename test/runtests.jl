@@ -53,7 +53,10 @@ include("regularization.jl")
     end
 
     @testset "Inversion with repeat times" begin
-        @testset test_single_rotation(repeat_times = true, sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)))
+        @testset test_single_rotation(
+            repeat_times = true,
+            sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
+        )
     end
 
 end
