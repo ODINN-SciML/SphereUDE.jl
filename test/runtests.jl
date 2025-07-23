@@ -48,8 +48,13 @@ include("regularization.jl")
             @testset "Gauss" test_single_rotation(sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)), use_regularization = false)
             # @testset "Backsolve" test_single_rotation(sensealg = BacksolveAdjoint(autojacvec = ReverseDiffVJP(true)), use_regularization = false)
         end
-        @testset "SciMLSensitivity gradient (with regularization)" test_single_rotation(sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)))
-        @testset "Custom Backsolve gradient (without regularization)" test_single_rotation(sensealg = SphereBackSolveAdjoint(), use_regularization = false)
+        @testset "SciMLSensitivity gradient (with regularization)" test_single_rotation(
+            sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
+        )
+        @testset "Custom Backsolve gradient (without regularization)" test_single_rotation(
+            sensealg = SphereBackSolveAdjoint(),
+            use_regularization = false,
+        )
     end
 
     @testset "Inversion with repeat times" begin
