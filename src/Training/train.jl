@@ -124,8 +124,8 @@ function train(
             Optim.BFGS(;
                 initial_stepnorm = 0.01,
                 # linesearch = LineSearches.BackTracking(iterations = 10)
-                linesearch = LineSearches.HagerZhang()
-                ),
+                linesearch = LineSearches.HagerZhang(),
+            ),
             callback = callback,
             maxiters = params.niter_LBFGS,
             allow_f_increases = true,
