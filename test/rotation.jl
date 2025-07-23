@@ -13,8 +13,8 @@ Random.seed!(rng, 666)
 function test_single_rotation(;
     repeat_times = false,
     use_regularization = true,
-    sensealg = sensealg
-    )
+    sensealg = sensealg,
+)
 
     # Total time simulation
     tspan = [0, 160.0]
