@@ -131,7 +131,7 @@ function train(
             allow_f_increases = true,
             successive_f_tol = 10,
             # g_tol = NaN # This disables stop criteria!
-            g_abstol = 1e-12 # Toletance in the norm of the gradient
+            g_abstol = 1e-12, # Toletance in the norm of the gradient
         )
     else
         res2 = res1
