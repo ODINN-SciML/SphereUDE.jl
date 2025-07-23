@@ -3,8 +3,16 @@ function test_quadrature(thres = 1e-4)
     rng = Random.default_rng()
     Random.seed!(rng, 613)
 
-    reg_AD = [Regularization(order = 1, power = 2.0, λ = 10.0^6.0, diff_mode = LuxNestedAD())]
-    reg_FD = [Regularization(order = 1, power = 2.0, λ = 10.0^6.0, diff_mode = FiniteDiff(ϵ=1e-8))]
+    reg_AD =
+        [Regularization(order = 1, power = 2.0, λ = 10.0^6.0, diff_mode = LuxNestedAD())]
+    reg_FD = [
+        Regularization(
+            order = 1,
+            power = 2.0,
+            λ = 10.0^6.0,
+            diff_mode = FiniteDiff(ϵ = 1e-8),
+        ),
+    ]
 
     tmin, tmax = 0.0, 1.0
     ωmax = 0.01
