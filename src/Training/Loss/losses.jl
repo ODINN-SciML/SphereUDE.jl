@@ -16,7 +16,7 @@ function loss(
     # Record the value of each individual loss to the total loss function for hyperparameter selection.
     loss_dict = Dict()
 
-    l_emp = loss_empirical(β, data, params)
+    l_emp = loss_empirical(β, data, params, U, st)
 
     loss_dict["Empirical"] = l_emp
 
@@ -56,24 +56,46 @@ function loss_empirical(
     β::ComponentVector,
     data::AD,
     params::AP,
+    U::Chain,
+    st::NamedTuple,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Predict trajectory on times associated to dataset
     if data.repeat_times
-        u_unique = predict(β, params, data.times_unique)
+        times = data.times_unique
+        u_unique = predict(β, params, times, U, st)
         u_ = u_unique[:, data.times_unique_inverse]
     else
-        u_ = predict(β, params, data.times)
+        times = data.times
+        u_ = predict(β, params, times, U, st)
+    end
+
+    if params.weighted
+        if data.repeat_times
+            @error "Repeat times not implemented for weighted sum."
+        end
+        weights = quadrature(
+            params.tmin,
+            params.tmax,
+            times;
+            method = :Linear
+            ) ./ (params.tmax - params.tmin)
+    else
+        weights = 1 / (params.tmax - params.tmin)
     end
 
     # Empirical error
     if isnothing(data.kappas)
-        # The 3 is needed since the mean is computen on a 3xN matrix
-        return 3.0 * mean(abs2.(u_ .- data.directions))
-        # l_emp = 1 - 3.0 * mean(u_ .* data.directions)
+        # @ignore_derivatives begin
+        #     # TODO: I should ensure the output is directly norm one and avoid this test here
+        #     @assert isapprox(2.0 * sum(weights .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weights .* abs2.(u_ .- data.directions)), rtol = 1e-3)
+        # end
+        return sum(weights .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
     else
-        return mean(data.kappas .* sum(abs2.(u_ .- data.directions), dims = 1))
-        # l_emp = norm(data.kappas)^2 - 3.0 * mean(data.kappas .* u_ .* data.directions)
+        return sum(weights .* data.kappas .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
+        # @ignore_derivatives begin
+        #     @assert isapprox(2.0 * sum(weights .*  data.kappas .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weights .* data.kappas .* abs2.(u_ .- data.directions)), rtol = 1e-3)
+        # end
     end
 
 end
@@ -81,7 +103,32 @@ end
 """
 Empirical Prediction function
 """
-function predict(β::ComponentVector, params::AP, T::Vector) where {AP<:AbstractParameters}
+function predict(
+    β::ComponentVector,
+    params::AP,
+    T::Vector,
+    U::Chain,
+    st::NamedTuple
+    ) where {AP<:AbstractParameters}
+
+    # Closure of the ODE update for solve
+    if params.out_of_place
+        ude_rotation_closure(u, p, t) = ude_rotation(u, p, t, U, st)
+        prob_nn = ODEProblem(
+            ude_rotation_closure,
+            params.u0,
+            [params.tmin, params.tmax],
+            β.θ
+            )
+    else
+        ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
+        prob_nn = ODEProblem(
+            ude_rotation_closure!,
+            params.u0,
+            [params.tmin, params.tmax],
+            β.θ
+            )
+    end
 
     if params.train_initial_condition
         _prob = remake(
@@ -104,12 +151,19 @@ function predict(β::ComponentVector, params::AP, T::Vector) where {AP<:Abstract
         _prob,
         params.solver,
         saveat = T,
+        # Do not set save_everystep to any value. This needs to be free fro the sensitivity
+        # method to work properly.
+        # save_everystep = save_everystep,
         abstol = params.abstol,
         reltol = params.reltol,
         sensealg = params.sensealg,
-        dtmin = 1e-4 * (params.tmax - params.tmin),
+        dtmin = 1e-6 * (params.tmax - params.tmin),
         force_dtmin = true,
     )
+
+    if (typeof(params.sensealg) <: BacksolveAdjoint) & (!(params.tmax ≈ maximum(T)) | !(params.tmin ≈ minimum(T)))
+        @warn "Backsolve adjoint requires to saveat initial and final time of the simulation"
+    end
 
     # If numerical integration fails or bad choice of parameter, return infinity
     if sol.retcode != :Success
@@ -119,9 +173,6 @@ function predict(β::ComponentVector, params::AP, T::Vector) where {AP<:Abstract
 
     return Array(sol)
 end
-
-
-
 
 """
 Loss function to be called for multiple shooting

@@ -1,31 +1,20 @@
-export quadrature, central_fdm, complex_step_differentiation
+export numerical_integral, central_fdm, complex_step_differentiation
 
-"""
-    quadrature_integrate
+function numerical_integral(
+    f::Function,
+    t₀::F,
+    t₁::F,
+    quadrature::Q
+    ) where {F<:AbstractFloat, Q<:AbstractQuadrature}
 
-Numerical integral using Gaussian quadrature
-"""
-function quadrature(f::Function, t₀, t₁, n_quadrature::Int)
-    nodes, weigths = quadrature(t₀, t₁, n_quadrature)
-    return dot(weigths, f.(nodes))
-end
-
-function quadrature(t₀, t₁, n_quadrature::Int)
-    # Ignore AD here since FastGaussQuadrature is using mutating arrays
-    @ignore_derivatives nodes, weigths = gausslegendre(n_quadrature)
-    # ignore() do
-    #     nodes, weigths = gausslegendre(n_quadrature)
-    #     # nodes .+ rand(sampler(Uniform(-0.1,0.1)), n_quadrature)
-    # end
-    nodes = (t₀ + t₁) / 2 .+ nodes * (t₁ - t₀) / 2
-    weigths = (t₁ - t₀) / 2 * weigths
-    return nodes, weigths
+    nodes, weights = extract_nodes_weights(t₀, t₁, quadrature)
+    return dot(weights, f.(nodes))
 end
 
 """
     central_fdm(f::Function, x::Float64; ϵ=0.01)
 
-Simple central differences implementation. 
+Simple central differences implementation.
 
 FiniteDifferences.jl does not work with AD so I implemented this manually.
 Still remains to test this with FiniteDiff.jl

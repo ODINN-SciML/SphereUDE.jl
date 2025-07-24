@@ -26,16 +26,16 @@ function SphereData(;
     if length(unique(times)) < length(times)
         repeat_times = true
         times_unique, times_unique_inverse = MakeVectorUnique(times)
-        in = typeof(first(times_unique_inverse))
+        int_type = typeof(first(times_unique_inverse))
     else
         repeat_times = false
         times_unique = nothing
         times_unique_inverse = nothing
-        in = Nothing
+        int_type = Nothing
     end
 
-    ft = typeof(first(times))
-    return SphereData{ft,in}(
+    ft_type = typeof(first(times))
+    return SphereData{ft_type,int_type}(
         times,
         directions,
         kappas,

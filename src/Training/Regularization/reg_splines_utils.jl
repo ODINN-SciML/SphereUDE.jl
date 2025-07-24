@@ -14,8 +14,8 @@ function cubic_regularization(
     smodel = StatefulLuxLayer{true}(U, β.θ, st)
 
     # Create prediction of solution time series in integration points
-    nodes, weights = quadrature(params.tmin, params.tmax, params.n_quadrature)
-    u_ = predict(β, params, nodes)
+    nodes, weights = quadrature(params.tmin, params.tmax, params.quadrature.n_nodes)
+    u_ = predict(β, params, nodes, U, st)
 
     if typeof(reg.diff_mode) <: LuxNestedAD
         # Automatic Differentiation
@@ -24,23 +24,23 @@ function cubic_regularization(
             Jac = batched_jacobian(
                 smodel,
                 AutoForwardDiff(),
-                reshape(nodes, 1, params.n_quadrature),
+                reshape(nodes, 1, params.quadrature.n_nodes),
             )
         elseif reg.diff_mode.method == "Zygote"
             Jac = batched_jacobian(
                 smodel,
                 AutoZygote(),
-                reshape(nodes, 1, params.n_quadrature),
+                reshape(nodes, 1, params.quadrature.n_nodes),
             )
         else
             throw("Method for AD backend no implemented.")
         end
 
-        L_cross_u = [cross(Jac[:, 1, j], u_[:, j]) for j = 1:params.n_quadrature]
+        L_cross_u = [cross(Jac[:, 1, j], u_[:, j]) for j = 1:params.quadrature.n_nodes]
 
-    elseif typeof(reg.diff_mode) <: FiniteDifferences
+    elseif typeof(reg.diff_mode) <: FiniteDiff
         L_ = [central_fdm(τ -> smodel([τ]), t, reg.diff_mode.ϵ) for t in nodes]
-        L_cross_u = [cross(L_[j], u_[:, j]) for j = 1:params.n_quadrature]
+        L_cross_u = [cross(L_[j], u_[:, j]) for j = 1:params.quadrature.n_nodes]
 
     elseif typeof(reg.diff_mode) <: ComplexStepDifferentiation
         L_ = [
@@ -51,5 +51,5 @@ function cubic_regularization(
         throw("Method not implemented.")
     end
 
-    return reg.λ * sum([weights[j] * norm(L_cross_u[j])^2.0 for j = 1:params.n_quadrature])
+    return reg.λ * sum([weights[j] * norm(L_cross_u[j])^2.0 for j = 1:params.quadrature.n_nodes])
 end

@@ -31,7 +31,7 @@ function test_param_constructor()
         abstol = 1e-6,
     )
 
-    reg1 = Regularization(order = 0, power = 2.0, λ = 0.1, diff_mode = FiniteDifferences())
+    reg1 = Regularization(order = 0, power = 2.0, λ = 0.1, diff_mode = FiniteDiff())
     reg2 = Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = LuxNestedAD())
 
     params2 = SphereParameters(
@@ -46,6 +46,7 @@ function test_param_constructor()
         niter_LBFGS = 300,
         reltol = 1e6,
         abstol = 1e-6,
+        quadrature = RandomQuadrature(n_nodes = 50)
     )
 
     @test params.niter_ADAM == 1000
@@ -53,5 +54,5 @@ function test_param_constructor()
 
     @test params2.reg[1].order == 0
     @test typeof(params2.reg[2].diff_mode) <: LuxNestedAD
-
+    @test params2.quadrature.n_nodes == 50
 end

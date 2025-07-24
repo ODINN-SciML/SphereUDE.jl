@@ -2,6 +2,8 @@ export get_default_NN
 export sigmoid, sigmoid_cap
 export relu, relu_cap
 export gelu, rbf
+export scale_input, scale_norm
+export fourier_feature
 
 # Import activation function for complex extension
 import Lux: relu, gelu
@@ -74,6 +76,39 @@ end
 
 function relu_cap(x, min_value::Float64, max_value::Float64)
     return min_value + (max_value - min_value) * max(0.0, min(x, 1.0))
+end
+
+# scale input 
+
+function scale_input(x; xmin, xmax)
+    return 2.0 .* (x .- xmin) ./ (xmax .- xmin) .- 1.0
+end
+
+# Scale norm
+
+function scale_norm(x; scale = 1.0)
+    @assert length(x) == 3
+    return (scale * tanh(norm(x) / scale)) .* (x ./ norm(x))
+end
+
+# Extension to work with batched jacobian
+function scale_norm(X::Matrix; scale = 1.0)
+    @assert size(X)[1] == 3
+    return reduce(hcat, map(x -> scale_norm(x; scale = scale), eachcol(X)))
+end
+
+# Fourier features
+
+function fourier_feature(v; n = 10)
+    a₁ = ones(n)
+    b₁ = ones(n)
+    W = 1.0:1.0:n |> collect
+    return [a₁ .* sin.(π .* W .* v); b₁ .* cos.(π .* W .* v)]
+end
+
+# Extension to work with batched_jacobian
+function fourier_feature(X::Matrix; n = 10)
+    return reduce(hcat, map(x -> fourier_feature(x; n = n), eachcol(X)))
 end
 
 ### Complex Expansion Activation Functions

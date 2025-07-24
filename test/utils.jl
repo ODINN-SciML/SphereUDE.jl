@@ -16,7 +16,9 @@ function test_complex_activation()
 end
 
 function test_integration()
-    @test isapprox(quadrature(x -> 1, 0.0, 1.0, 100), 1.0, rtol = 1e-6)
-    @test isapprox(quadrature(x -> x, -1.0, 1.0, 100), 0.0, atol = 1e-6)
-    @test isapprox(quadrature(x -> x^2, -1.0, 1.0, 100), 2 / 3.0, rtol = 1e-6)
+    quad1 = GaussQuadrature(n_nodes = 100)
+    quad2 = RandomGaussQuadrature(n_nodes_min = 100, n_nodes_max = 120)
+    @test isapprox(numerical_integral(x -> 1, 0.0, 1.0, quad1), 1.0, rtol = 1e-6)
+    @test isapprox(numerical_integral(x -> x, -1.0, 1.0, quad2), 0.0, atol = 1e-3)
+    @test isapprox(numerical_integral(x -> x^2, -1.0, 1.0, quad1), 2 / 3.0, rtol = 1e-6)
 end

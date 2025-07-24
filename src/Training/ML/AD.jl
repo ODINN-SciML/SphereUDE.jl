@@ -1,4 +1,4 @@
-export FiniteDifferences, ComplexStepDifferentiation, LuxNestedAD
+export FiniteDiff, ComplexStepDifferentiation, LuxNestedAD
 export AbstractDifferentiation
 
 abstract type AbstractDifferentiation end
@@ -6,7 +6,7 @@ abstract type AbstractDifferentiation end
 """
 Differentiation methods
 """
-@kwdef struct FiniteDifferences{F<:AbstractFloat} <: AbstractDifferentiation
+@kwdef struct FiniteDiff{F<:AbstractFloat} <: AbstractDifferentiation
     ϵ::F = 1e-10
 end
 

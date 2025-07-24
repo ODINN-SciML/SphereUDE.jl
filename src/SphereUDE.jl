@@ -1,8 +1,8 @@
 __precompile__()
 module SphereUDE
 
-# utils 
-# training 
+# utils
+# training
 using LinearAlgebra, Statistics, Distributions
 using FastGaussQuadrature
 using Lux, Zygote, DiffEqFlux
@@ -14,11 +14,17 @@ using ComponentArrays
 # using PyPlot, PyCall
 using PythonCall, CondaPkg
 using PrettyTables, Printf
+using SciMLBase: NoAD
+using DiffEqBase: AbstractDEAlgorithm
+using MLUtils: DataLoader
+using StaticArrays
 
 # Debugging
 using Infiltrator
 
 # Data Types
+include("DiffEq/adjoint.jl")
+include("Training/Regularization/Quadrature.jl")
 include("Parameters/SphereParameters.jl")
 include("Data/SphereData.jl")
 include("Data/data_utils.jl")
@@ -33,6 +39,7 @@ include("Training/ML/numerical_utils.jl")
 include("Training/ML/AD.jl")
 
 # Losses and regularization
+include("Training/Regularization/quadrature_utils.jl")
 include("Training/Regularization/Regularization.jl")
 include("Training/Regularization/reg_utils.jl")
 include("Training/Regularization/reg_splines_utils.jl")
