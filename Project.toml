@@ -42,6 +42,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 [compat]
 BenchmarkTools = "1"
 ChainRules = "1"
+ColorSchemes = "3"
 ComponentArrays = "0.15"
 CondaPkg = "0.2"
 DiffEqFlux = "4"
