@@ -46,7 +46,7 @@ function test_param_constructor()
         niter_LBFGS = 300,
         reltol = 1e6,
         abstol = 1e-6,
-        quadrature = RandomQuadrature(n_nodes = 50)
+        quadrature = RandomQuadrature(n_nodes = 50),
     )
 
     @test params.niter_ADAM == 1000
