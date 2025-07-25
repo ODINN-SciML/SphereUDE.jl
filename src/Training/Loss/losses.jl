@@ -74,12 +74,9 @@ function loss_empirical(
         if data.repeat_times
             @error "Repeat times not implemented for weighted sum."
         end
-        weights = quadrature(
-            params.tmin,
-            params.tmax,
-            times;
-            method = :Linear
-            ) ./ (params.tmax - params.tmin)
+        weights =
+            quadrature(params.tmin, params.tmax, times; method = :Linear) ./
+            (params.tmax - params.tmin)
     else
         weights = 1 / (params.tmax - params.tmin)
     end
@@ -108,26 +105,18 @@ function predict(
     params::AP,
     T::Vector,
     U::Chain,
-    st::NamedTuple
-    ) where {AP<:AbstractParameters}
+    st::NamedTuple,
+) where {AP<:AbstractParameters}
 
     # Closure of the ODE update for solve
     if params.out_of_place
         ude_rotation_closure(u, p, t) = ude_rotation(u, p, t, U, st)
-        prob_nn = ODEProblem(
-            ude_rotation_closure,
-            params.u0,
-            [params.tmin, params.tmax],
-            β.θ
-            )
+        prob_nn =
+            ODEProblem(ude_rotation_closure, params.u0, [params.tmin, params.tmax], β.θ)
     else
         ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
-        prob_nn = ODEProblem(
-            ude_rotation_closure!,
-            params.u0,
-            [params.tmin, params.tmax],
-            β.θ
-            )
+        prob_nn =
+            ODEProblem(ude_rotation_closure!, params.u0, [params.tmin, params.tmax], β.θ)
     end
 
     if params.train_initial_condition
@@ -161,7 +150,8 @@ function predict(
         force_dtmin = true,
     )
 
-    if (typeof(params.sensealg) <: BacksolveAdjoint) & (!(params.tmax ≈ maximum(T)) | !(params.tmin ≈ minimum(T)))
+    if (typeof(params.sensealg) <: BacksolveAdjoint) &
+       (!(params.tmax ≈ maximum(T)) | !(params.tmin ≈ minimum(T)))
         @warn "Backsolve adjoint requires to saveat initial and final time of the simulation"
     end
 

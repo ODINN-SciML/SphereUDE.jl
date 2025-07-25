@@ -43,7 +43,7 @@ function train(
             callback_print_closure,
             callback_proj_closure,
             callback_stop_condition_closure,
-            ),
+        ),
     )
 
     # Dispatch the right loss function
@@ -77,29 +77,26 @@ function train(
             maxiters = n_pretrain,
             verbose = false,
         )
-        println("Improvement due to pretrain: $(losses_pretrain[begin]) --> $(losses_pretrain[end])")
+        println(
+            "Improvement due to pretrain: $(losses_pretrain[begin]) --> $(losses_pretrain[end])",
+        )
         β = res₀.u
     end
 
     @info "Start optimization with ADAM"
     # if params.customgrad
     if isa(params.sensealg, SciMLBase.AbstractAdjointSensitivityAlgorithm)
-        optf = Optimization.OptimizationFunction(
-            (β, _p) -> (first ∘ f_loss)(β),
-            params.adtype
-            )
+        optf =
+            Optimization.OptimizationFunction((β, _p) -> (first ∘ f_loss)(β), params.adtype)
     elseif isa(params.sensealg, AbstractAdjointMethod)
         @info "Training with custom gradient method."
 
         # Closure functions to deliver data loader
         loss_function(_β, _p) = (first ∘ f_loss)(_β)
-        loss_grad!(_dβ, _β, _p) = rotation_grad!(_dβ, _β, data, params, U, st, params.sensealg)
+        loss_grad!(_dβ, _β, _p) =
+            rotation_grad!(_dβ, _β, data, params, U, st, params.sensealg)
 
-        optf = Optimization.OptimizationFunction(
-            loss_function,
-            grad = loss_grad!,
-            NoAD(),
-            )
+        optf = Optimization.OptimizationFunction(loss_function, grad = loss_grad!, NoAD())
     end
 
     # Create dummy data loader
@@ -170,6 +167,6 @@ function train(
         fit_directions = fit_directions,
         fit_rotations = fit_rotations,
         losses = losses,
-        losses_dict = loss_dict
+        losses_dict = loss_dict,
     )
 end

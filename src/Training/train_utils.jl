@@ -62,7 +62,7 @@ Callback to determine stoping condition of optimization algorithm.
 function callback_stop_condition(p, l, losses)
     n_window = 100
     if (length(losses) > n_window) & (length(losses) % 100 == 0)
-        losses_last = losses[end-n_window+1:end]
+        losses_last = losses[(end-n_window+1):end]
         if (std(losses_last) / mean(losses_last) < 1e-7) &
            (abs(losses[end] - losses[end-1]) < 1e-7 * losses[end-1])
             println("Optimization converged in $(length(losses)) epochs.")
