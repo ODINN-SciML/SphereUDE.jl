@@ -1,6 +1,7 @@
 [![Build Status](https://github.com/ODINN-SciML/SphereUDE.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ODINN-SciML/SphereUDE.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![codecov](https://codecov.io/gh/ODINN-SciML/SphereUDE.jl/graph/badge.svg?token=UC0KFSUU3X)](https://codecov.io/gh/ODINN-SciML/SphereUDE.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![DOI](https://zenodo.org/badge/735154231.svg)](https://doi.org/10.5281/zenodo.15165465)
 
 <img src="https://github.com/ODINN-SciML/SphereUDE.jl/blob/main/plots/logo.png?raw=true" width="350">
 
