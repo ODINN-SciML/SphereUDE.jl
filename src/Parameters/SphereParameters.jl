@@ -5,7 +5,12 @@ abstract type AbstractParameters end
 """
 Training parameters
 """
-@kwdef struct SphereParameters{F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:AbstractQuadrature} <: AbstractParameters
+@kwdef struct SphereParameters{
+    F<:AbstractFloat,
+    I<:Int,
+    ADJ<:AbstractAdjointMethod,
+    Q<:AbstractQuadrature,
+} <: AbstractParameters
     tmin::F
     tmax::F
     u0::Union{Vector{F},SVector{3,F},Nothing}
@@ -22,7 +27,7 @@ Training parameters
     quadrature::Q
     solver::AbstractDEAlgorithm
     adtype::Optimization.AbstractADType
-    sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm, ADJ}
+    sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm,ADJ}
     out_of_place::Bool
     pretrain::Bool
     hyperparameter_balance::Bool
@@ -48,18 +53,21 @@ function SphereParameters(;
     quadrature::Union{Q,I} = 100,
     solver::AbstractDEAlgorithm = Tsit5(),
     adtype::Optimization.AbstractADType = AutoZygote(),
-    sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm, ADJ} =
-        QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
+    sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm,ADJ} = QuadratureAdjoint(
+        autojacvec = ReverseDiffVJP(true),
+    ),
     out_of_place::Bool = false,
     pretrain::Bool = false,
     hyperparameter_balance::Bool = false,
     verbose::Bool = true,
     verbose_step::I = 100,
-    ) where {F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:AbstractQuadrature}
+) where {F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:AbstractQuadrature}
 
     ft = typeof(tmin)
     it = typeof(niter_ADAM)
-    gt = isa(sensealg, SciMLBase.AbstractAdjointSensitivityAlgorithm) ? SphereBackSolveAdjoint : typeof(sensealg)
+    gt =
+        isa(sensealg, SciMLBase.AbstractAdjointSensitivityAlgorithm) ?
+        SphereBackSolveAdjoint : typeof(sensealg)
 
     # Check consistency of out/in-place for sensitivity methods
     if out_of_place & (typeof(sensealg) <: SciMLBase.AbstractAdjointSensitivityAlgorithm)
@@ -83,11 +91,28 @@ function SphereParameters(;
     qt = typeof(quadrature)
 
     params = SphereParameters{ft,it,gt,qt}(
-        tmin, tmax, u0, ωmax, reg, train_initial_condition, multiple_shooting, weighted,
-        niter_ADAM, ADAM_learning_rate, niter_LBFGS,
-        reltol, abstol, quadrature, solver, adtype, sensealg, out_of_place,
-        pretrain, hyperparameter_balance,
-        verbose, verbose_step
+        tmin,
+        tmax,
+        u0,
+        ωmax,
+        reg,
+        train_initial_condition,
+        multiple_shooting,
+        weighted,
+        niter_ADAM,
+        ADAM_learning_rate,
+        niter_LBFGS,
+        reltol,
+        abstol,
+        quadrature,
+        solver,
+        adtype,
+        sensealg,
+        out_of_place,
+        pretrain,
+        hyperparameter_balance,
+        verbose,
+        verbose_step,
     )
 
     return params
