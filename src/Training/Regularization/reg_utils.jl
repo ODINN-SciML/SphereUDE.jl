@@ -42,19 +42,14 @@ function regularization(
                 )
             elseif reg.diff_mode.method == "Zygote"
                 # This can also be done with Zygote in reverse mode
-                Jac = batched_jacobian(
-                    smodel,
-                    AutoZygote(),
-                    reshape(nodes, 1, n_quadrature),
-                )
+                Jac =
+                    batched_jacobian(smodel, AutoZygote(), reshape(nodes, 1, n_quadrature))
             else
                 throw("Method for AD backend no implemented.")
             end
 
             # Compute the final agregation to the loss
-            l_AD = sum([
-                weights[j] * norm(Jac[:, 1, j])^reg.power for j = 1:n_quadrature
-            ])
+            l_AD = sum([weights[j] * norm(Jac[:, 1, j])^reg.power for j = 1:n_quadrature])
             l_ += l_AD
 
             # Test every a few iterations that AD is working properly

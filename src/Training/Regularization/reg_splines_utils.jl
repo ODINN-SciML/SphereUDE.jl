@@ -51,5 +51,6 @@ function cubic_regularization(
         throw("Method not implemented.")
     end
 
-    return reg.λ * sum([weights[j] * norm(L_cross_u[j])^2.0 for j = 1:params.quadrature.n_nodes])
+    return reg.λ *
+           sum([weights[j] * norm(L_cross_u[j])^2.0 for j = 1:params.quadrature.n_nodes])
 end

@@ -4,8 +4,8 @@ function numerical_integral(
     f::Function,
     t₀::F,
     t₁::F,
-    quadrature::Q
-    ) where {F<:AbstractFloat, Q<:AbstractQuadrature}
+    quadrature::Q,
+) where {F<:AbstractFloat,Q<:AbstractQuadrature}
 
     nodes, weights = extract_nodes_weights(t₀, t₁, quadrature)
     return dot(weights, f.(nodes))
