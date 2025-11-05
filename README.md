@@ -115,6 +115,7 @@ If you have any questions or want to reach out, feel free to send us an email to
 ## Citation
 
 You can cite the software `SphereUDE.jl ` as 
+```
 @software{SphereUDE.jl,
   author = {Sapienza, Facundo and Bolibar, Jordi},
   title = {SphereUDE.jl},
@@ -127,6 +128,7 @@ You can cite the software `SphereUDE.jl ` as
   url = {https://doi.org/10.5281/zenodo.16423274},
   keywords = {software}
 }
+```
 or cite our associated publication as
 ```
 @article{sapienza2025spherical,
