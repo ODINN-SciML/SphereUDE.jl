@@ -111,3 +111,33 @@ We encourage you to contribute to this package. If you are interested in contrib
 ## Contact 
 
 If you have any questions or want to reach out, feel free to send us an email to `sapienza@stanford.edu`.
+
+## Citation
+
+You can cite the software `SphereUDE.jl ` as 
+@software{SphereUDE.jl,
+  author = {Sapienza, Facundo and Bolibar, Jordi},
+  title = {SphereUDE.jl},
+  month = jul,
+  year = 2025,
+  type = {software},
+  publisher = {Zenodo},
+  version = {v0.2.1},
+  doi = {10.5281/zenodo.16423274},
+  url = {https://doi.org/10.5281/zenodo.16423274},
+  keywords = {software}
+}
+or cite our associated publication as
+```
+@article{sapienza2025spherical,
+    title = {Spherical Path Regression Through Universal Differential Equations With Applications to Paleomagnetism}, 
+    volume = {2}, 
+    ISSN = {2993-5210}, 
+    DOI = {10.1029/2025jh000626}, 
+    number = {4},
+    journal = {Journal of Geophysical Research: Machine Learning and Computation},
+    author = {Sapienza, F. and Gallo, L. C. and Bolibar, J. and Pérez, F. and Taylor, J.},
+    year = {2025},
+    keywords = {first}
+}
+```
