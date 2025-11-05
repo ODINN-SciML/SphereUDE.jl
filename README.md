@@ -140,6 +140,5 @@ or cite our associated publication as
     journal = {Journal of Geophysical Research: Machine Learning and Computation},
     author = {Sapienza, F. and Gallo, L. C. and Bolibar, J. and Pérez, F. and Taylor, J.},
     year = {2025},
-    keywords = {first}
 }
 ```
