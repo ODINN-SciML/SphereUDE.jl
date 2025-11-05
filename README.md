@@ -5,9 +5,9 @@
 
 <img src="https://github.com/ODINN-SciML/SphereUDE.jl/blob/main/plots/logo.png?raw=true" width="350">
 
-## ⚠️ New preprint available! 📖 ⚠️
+## ⚠️ New publication availbale available! 📖 ⚠️
 
-The paper is now available as a preprint: https://www.authorea.com/users/589727/articles/1265456-spherical-path-regression-through-universal-differential-equations-with-applications-to-paleomagnetism
+The paper is associated to this package is now available at the [Journal of Geophysical Research: Machine Learning and Computation](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2025JH000626)
 
 ---
 
