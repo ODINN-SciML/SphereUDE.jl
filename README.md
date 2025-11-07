@@ -5,9 +5,9 @@
 
 <img src="https://github.com/ODINN-SciML/SphereUDE.jl/blob/main/plots/logo.png?raw=true" width="350">
 
-## ⚠️ New publication availbale available! 📖 ⚠️
+## ⚠️ New publication available! 📖 ⚠️
 
-The paper is associated to this package is now available at the [Journal of Geophysical Research: Machine Learning and Computation](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2025JH000626)
+The paper associated to this package is now available at the [Journal of Geophysical Research: Machine Learning and Computation](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2025JH000626)
 
 ---
 
@@ -114,7 +114,7 @@ If you have any questions or want to reach out, feel free to send us an email to
 
 ## Citation
 
-You can cite the software `SphereUDE.jl ` as 
+You can cite the software `SphereUDE.jl` as 
 ```
 @software{SphereUDE.jl,
   author = {Sapienza, Facundo and Bolibar, Jordi},
