@@ -1,8 +1,8 @@
 function test_grad_finite_diff(
     sensealg::ADJ;
-    thres = [0., 0., 0.],
+    thres = [0.0, 0.0, 0.0],
     finite_difference_order = 5,
-    repeat_times = false
+    repeat_times = false,
 ) where {ADJ<:AbstractAdjointMethod}
 
     rng = Random.default_rng()
@@ -52,7 +52,7 @@ function test_grad_finite_diff(
         niter_ADAM = 201,
         niter_LBFGS = 201,
         sensealg = sensealg,
-        verbose = false
+        verbose = false,
     )
 
     U = get_default_NN(params, rng, nothing)
@@ -61,7 +61,8 @@ function test_grad_finite_diff(
 
     f_loss(β) = loss(β, data, params, U, st)
     loss_function(_β) = (first ∘ f_loss)(_β)
-    loss_grad!(_dβ, _β) = SphereUDE.rotation_grad!(_dβ, _β, data, params, U, st, params.sensealg)
+    loss_grad!(_dβ, _β) =
+        SphereUDE.rotation_grad!(_dβ, _β, data, params, U, st, params.sensealg)
 
     dβ = zero(β)
     loss_grad!(dβ, β)
@@ -69,7 +70,7 @@ function test_grad_finite_diff(
     dβ_FD, = FiniteDifferences.grad(
         FiniteDifferences.central_fdm(finite_difference_order, 1),
         _β -> loss_function(_β),
-        β
+        β,
     )
 
     ratio_FD, angle_FD, relerr_FD = stats_err_arrays(dβ, dβ_FD)
@@ -87,24 +88,24 @@ function test_grad_finite_diff(
     end
 end
 
-function stats_err_arrays(a::T, b::T) where T
-    ratio = sqrt(sum(a.^2)) / sqrt(sum(b.^2)) - 1
-    angle = sum(a.*b) / (sqrt(sum(a.^2)) * sqrt(sum(b.^2))) - 1
-    relerr = sqrt(sum((a - b).^2)) / sqrt(sum((a).^2))
+function stats_err_arrays(a::T, b::T) where {T}
+    ratio = sqrt(sum(a .^ 2)) / sqrt(sum(b .^ 2)) - 1
+    angle = sum(a .* b) / (sqrt(sum(a .^ 2)) * sqrt(sum(b .^ 2))) - 1
+    relerr = sqrt(sum((a - b) .^ 2)) / sqrt(sum((a) .^ 2))
     return ratio, angle, relerr
 end
 
 printVecScientific(v) = join([@sprintf("%9.2e", e) for e in v], " ")
-function printVecScientific(baseVarName, v, thres=nothing)
+function printVecScientific(baseVarName, v, thres = nothing)
     print(baseVarName)
     for e in v
         if isnothing(thres)
             print(@sprintf("%9.2e", e))
         else
             if abs(e)<=thres
-                printstyled(@sprintf("%9.2e", e); color=:green)
+                printstyled(@sprintf("%9.2e", e); color = :green)
             else
-                printstyled(@sprintf("%9.2e", e); color=:red)
+                printstyled(@sprintf("%9.2e", e); color = :red)
             end
         end
         print(" ")

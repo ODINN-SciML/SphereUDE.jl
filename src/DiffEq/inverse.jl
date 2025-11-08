@@ -12,7 +12,7 @@ function rotation_grad!(
     U::Chain,
     st::NamedTuple,
     sensealg::SphereBackSolveAdjoint,
-    ) where {AD<:AbstractData, AP<:AbstractParameters}
+) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Compute final solution of forward model
     t₀, t₁ = params.tmin, params.tmax
@@ -36,8 +36,10 @@ function rotation_grad!(
         if typeof(integrator.u) <: SVector
             integrator.u = vcat(
                 integrator.u[1:3],
-                SVector{3,Float64}(integrator.u[4:6] .- y * κ / (params.tmax - params.tmin))
-                )
+                SVector{3,Float64}(
+                    integrator.u[4:6] .- y * κ / (params.tmax - params.tmin),
+                ),
+            )
         else
             integrator.u[4:6] .+= .- y * κ / (params.tmax - params.tmin)
         end
@@ -52,23 +54,15 @@ function rotation_grad!(
 
         rotation_adjoint(v, p, τ) = rotation_reverse(v, p, τ, U, st)
 
-        rotation_adjoint_rev = ODEProblem{false}(
-            rotation_adjoint,
-            v₁,
-            (- params.tmax, - params.tmin),
-            β.θ
-            )
+        rotation_adjoint_rev =
+            ODEProblem{false}(rotation_adjoint, v₁, (- params.tmax, - params.tmin), β.θ)
 
     else
 
         rotation_adjoint!(dv, v, p, τ) = rotation_reverse!(dv, v, p, τ, U, st)
 
-        rotation_adjoint_rev = ODEProblem{true}(
-            rotation_adjoint!,
-            v₁,
-            (- params.tmax, - params.tmin),
-            β.θ
-            )
+        rotation_adjoint_rev =
+            ODEProblem{true}(rotation_adjoint!, v₁, (- params.tmax, - params.tmin), β.θ)
     end
 
     # Where the adjoint needs to be evaluated
@@ -87,8 +81,8 @@ function rotation_grad!(
         sensealg.solver,
         # dtmax = sensealg.dtmax,
         reltol = sensealg.reltol,
-        abstol = sensealg.abstol
-        )
+        abstol = sensealg.abstol,
+    )
 
     if norm(params.u0 .- sol_adjoint(-params.tmin)[1:3]) > 1e-4
         @warn "Solution if backsolve adjoint differs from forward solve: ( u0 = $(params.u0) ) ≠ ( sol_adjoint = $(sol_adjoint(-params.tmin)[1:3]) )"
@@ -96,18 +90,16 @@ function rotation_grad!(
 
     # Now we compute the contribution to the loss function.
     dLdθ = zeros(size(β.θ))
-    for i in 1:n_quadrature
+    for i = 1:n_quadrature
         t = nodes[i]
         τ = -t
-        ∇θ, = Zygote.jacobian(
-            _θ -> StatefulLuxLayer{true}(U, _θ, st)([t]),
-            β.θ
-        )
-        dLdθ .+= weights[i] * mapslices(
-            x -> dot(sol_adjoint(τ)[4:6], cross(x, sol_adjoint(τ)[1:3])),
-            ∇θ;
-            dims = 1
-        )[:]
+        ∇θ, = Zygote.jacobian(_θ -> StatefulLuxLayer{true}(U, _θ, st)([t]), β.θ)
+        dLdθ .+=
+            weights[i] * mapslices(
+                x -> dot(sol_adjoint(τ)[4:6], cross(x, sol_adjoint(τ)[1:3])),
+                ∇θ;
+                dims = 1,
+            )[:]
     end
 
     dLdθ_cv = Vector2ComponentVector(dLdθ, β.θ)
@@ -143,8 +135,8 @@ function rotation_grad!(
     params::AP,
     U::Chain,
     st::NamedTuple,
-    sensealg::SphereUDE.DummyAdjoint
-    ) where {AD<:AbstractData,AP<:AbstractParameters}
+    sensealg::SphereUDE.DummyAdjoint,
+) where {AD<:AbstractData,AP<:AbstractParameters}
 
     dβ .= (rand() - 0.5) .* β
 end
@@ -152,7 +144,7 @@ end
 
 function Vector2ComponentVector(v::Vector, cv_template::ComponentVector)
     cv = zero(cv_template)
-    for i in 1:length(v)
+    for i = 1:length(v)
         cv[i] = v[i]
     end
     return cv

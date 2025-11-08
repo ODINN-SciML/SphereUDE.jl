@@ -3,7 +3,7 @@ export extract_nodes_weights
 function extract_nodes_weights(
     t₀::F,
     t₁::F,
-    quadrature::GaussQuadrature
+    quadrature::GaussQuadrature,
 ) where {F<:AbstractFloat}
 
     # Extract nodes and weightds for numerical integration in [0,1]
@@ -18,7 +18,7 @@ end
 function extract_nodes_weights(
     t₀::F,
     t₁::F,
-    quadrature::RandomGaussQuadrature
+    quadrature::RandomGaussQuadrature,
 ) where {F<:AbstractFloat}
     n_nodes = rand(quadrature.n_nodes_min:quadrature.n_nodes_max)
     return extract_nodes_weights(t₀, t₁, GaussQuadrature(n_nodes = n_nodes))
@@ -27,7 +27,7 @@ end
 function extract_nodes_weights(
     t₀::F,
     t₁::F,
-    quadrature::RandomQuadrature
+    quadrature::RandomQuadrature,
 ) where {F<:AbstractFloat}
 
     nodes = rand(Uniform(t₀, t₁), quadrature.n_nodes)
@@ -39,7 +39,7 @@ end
 function extract_nodes_weights(
     t₀::F,
     t₁::F,
-    quadrature::CustomQuadrature
+    quadrature::CustomQuadrature,
 ) where {F<:AbstractFloat}
 
     nodes = quadrature.nodes
@@ -57,15 +57,15 @@ function extract_nodes_weights(
             function.
             """
             # Build Vandermonde matrix
-            V = [nodes[i]^j for j in 0:n-1, i in 1:n]
+            V = [nodes[i]^j for j = 0:(n-1), i = 1:n]
             # Right-hand side: exact integrals of monomials
-            b = [(t₁^(k + 1) - t₀^(k + 1)) / (k + 1) for k in 0:n-1]
+            b = [(t₁^(k + 1) - t₀^(k + 1)) / (k + 1) for k = 0:(n-1)]
             # solve for the weights
             weights = V \ b
         elseif quadrature.interpolation_method == :Linear
-            midpoints = (nodes[1:end-1] .+ nodes[2:end] ) ./ 2.0
+            midpoints = (nodes[1:(end-1)] .+ nodes[2:end]) ./ 2.0
             edges = [t₀; midpoints; t₁]
-            weights = (edges[2:end] .- edges[1:end-1])
+            weights = (edges[2:end] .- edges[1:(end-1)])
             @assert sum(weights) ≈ t₁ - t₀
         else
             @error "Method $(method) not implemented."

@@ -30,7 +30,8 @@ tspan = [0, 160.0]
 N_samples = 100
 # Times where we sample points
 # Include initial and final time for backadjoint
-random_times = [tspan[1]; tspan[2]; rand(sampler(Uniform(tspan[1], tspan[2])), N_samples - 2)]
+random_times =
+    [tspan[1]; tspan[2]; rand(sampler(Uniform(tspan[1], tspan[2])), N_samples - 2)]
 times_samples = sort(random_times)
 
 # Expected maximum angular deviation in one unit of time (degrees)
@@ -61,7 +62,7 @@ numerical_solver = [
     # AutoTsit5(Rosenbrock23()),
     # Vern9(),
     # Rodas5P()
-    ]
+]
 
 sensealg_types = [
     # SphereUDE.DummyAdjoint(),
@@ -69,7 +70,7 @@ sensealg_types = [
     InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
     QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
     BacksolveAdjoint(autojacvec = ReverseDiffVJP(false), checkpointing = false),
-    SphereBackSolveAdjoint()
+    SphereBackSolveAdjoint(),
 ]
 
 tolerances = [1e-6]
@@ -78,14 +79,15 @@ in_out_place = [false, true]
 
 # BenchmarkTools evaluates things at global scope
 params_benchmark = []
-for tol in tolerances, regs in regularization_types, solver in numerical_solver, place in in_out_place, sensealg in sensealg_types
+for tol in tolerances,
+    regs in regularization_types,
+    solver in numerical_solver,
+    place in in_out_place,
+    sensealg in sensealg_types
 
     if typeof(sensealg) <: SphereBackSolveAdjoint
-        sensealg = SphereBackSolveAdjoint(
-            solver = sensealg.solver,
-            reltol = tol,
-            abstol = tol
-        )
+        sensealg =
+            SphereBackSolveAdjoint(solver = sensealg.solver, reltol = tol, abstol = tol)
     end
 
     params = SphereParameters(
@@ -108,12 +110,14 @@ for tol in tolerances, regs in regularization_types, solver in numerical_solver,
     push!(params_benchmark, params)
 end
 
-println("Benchmarking in a total of $(length(params_benchmark)) combinations. This will required a total maximum of ~$(length(params_benchmark) * BenchmarkTools.DEFAULT_PARAMETERS.seconds / 60) minutes.")
+println(
+    "Benchmarking in a total of $(length(params_benchmark)) combinations. This will required a total maximum of ~$(length(params_benchmark) * BenchmarkTools.DEFAULT_PARAMETERS.seconds / 60) minutes.",
+)
 
 benchmark_data = []
 header = (
     ["Sensitivity", "Reg", "Solver", "Tol", "out-of-place", "Time", "Alloc", "Memory"],
-    ["", "", "", "", "", "[ns]", "", "bites"]
+    ["", "", "", "", "", "[ns]", "", "bites"],
 )
 
 for params in params_benchmarks
@@ -123,15 +127,30 @@ for params in params_benchmarks
         if (typeof(params.sensealg) <: SphereBackSolveAdjoint) & !params.out_of_place
             continue
         end
-        if (typeof(params.sensealg) <: SciMLBase.AbstractAdjointSensitivityAlgorithm) & params.out_of_place
+        if (typeof(params.sensealg) <: SciMLBase.AbstractAdjointSensitivityAlgorithm) &
+           params.out_of_place
             continue
         end
-        println("## Benchmark of $(params.reg), $(params.sensealg), tolerance = $(params.reltol)")
+        println(
+            "## Benchmark of $(params.reg), $(params.sensealg), tolerance = $(params.reltol)",
+        )
         println("> Training for a total of $(params.niter_ADAM+params.niter_LBFGS) epochs")
         trial = @benchmark train(data, $params, $rng, nothing, nothing)
         # display(trial)
         # println("")
-        push!(benchmark_data, ["$(params.sensealg)", "$(params.reg)", "$(params.solver)", "$(params.reltol)", "$(params.out_of_place)", mean(trial.times), trial.allocs, trial.memory])
+        push!(
+            benchmark_data,
+            [
+                "$(params.sensealg)",
+                "$(params.reg)",
+                "$(params.solver)",
+                "$(params.reltol)",
+                "$(params.out_of_place)",
+                mean(trial.times),
+                trial.allocs,
+                trial.memory,
+            ],
+        )
     catch _err
         @warn "Simulation with $(params) did not work."
     end
@@ -141,18 +160,19 @@ time_col = 6
 
 h1 = Highlighter(
     (data, i, j) -> j == time_col && data[i, j] >= mean(data[2:end, time_col]),
-    bold       = true,
-    foreground = :red )
+    bold = true,
+    foreground = :red,
+)
 
 h2 = Highlighter(
-    (data,i,j)->j == time_col && data[i, j] <= 1.2 * minimum(data[2:end, time_col]),
-    bold       = true,
-    foreground = :green
+    (data, i, j)->j == time_col && data[i, j] <= 1.2 * minimum(data[2:end, time_col]),
+    bold = true,
+    foreground = :green,
 )
 
 formated_benchmark_data = permutedims(hcat(benchmark_data...))
-formated_benchmark_data[:,1] .=  (x -> split(x, "{")[begin]).(formated_benchmark_data[:,1])
-formated_benchmark_data[:,3] .=  (x -> split(x, "{")[begin]).(formated_benchmark_data[:,3])
+formated_benchmark_data[:, 1] .= (x -> split(x, "{")[begin]).(formated_benchmark_data[:, 1])
+formated_benchmark_data[:, 3] .= (x -> split(x, "{")[begin]).(formated_benchmark_data[:, 3])
 
 pretty_table(
     formated_benchmark_data;
@@ -161,5 +181,5 @@ pretty_table(
     linebreaks = true,
     header_crayon = crayon"yellow bold",
     highlighters = (h1, h2),
-    formatters = ft_printf("%.2e")
-    )
+    formatters = ft_printf("%.2e"),
+)
