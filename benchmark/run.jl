@@ -7,11 +7,16 @@ using Logging
 using PrettyTables
 using ColorSchemes
 using SciMLBase
+using Lux
 using ODE
 using SimpleDiffEq
 using DifferentialEquations
 Logging.disable_logging(Logging.Info)
 BenchmarkTools.DEFAULT_PARAMETERS.seconds = 60
+
+using DifferentiationInterface
+import Mooncake
+import SciMLSensitivity: MooncakeVJP
 
 using Distributions, Statistics, LinearAlgebra
 using SciMLSensitivity
@@ -51,7 +56,7 @@ regularization_types = [
     nothing,
     # [Regularization(order = 0, power = 1.0, λ = 0.1, diff_mode = nothing)],
     # [Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = FiniteDiff(1e-6))],
-    # [Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = LuxNestedAD())],
+    # [Regularization(order = 1, power = 2.0, λ = 0.1, diff_mode = LuxNestedAD())],
 ]
 
 numerical_solver = [
@@ -68,7 +73,10 @@ sensealg_types = [
     GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
     InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
     QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
-    BacksolveAdjoint(autojacvec = ReverseDiffVJP(false), checkpointing = false),
+    # BacksolveAdjoint(autojacvec = ReverseDiffVJP(false), checkpointing = false),
+    GaussAdjoint(autojacvec = MooncakeVJP()),
+    InterpolatingAdjoint(autojacvec = MooncakeVJP()),
+    QuadratureAdjoint(autojacvec = MooncakeVJP()),
     SphereBackSolveAdjoint()
 ]
 
@@ -108,6 +116,20 @@ for tol in tolerances, regs in regularization_types, solver in numerical_solver,
     push!(params_benchmark, params)
 end
 
+n_fourier_features = 4
+U = Lux.Chain(
+    # Scale function to bring input to [-1.0, 1.0]
+    Lux.WrappedFunction(x -> scale_input(x; xmin = tspan[1], xmax = tspan[2])),
+    # Fourier feautues
+    Lux.WrappedFunction(x -> fourier_feature(x; n = n_fourier_features)),
+    Lux.Dense(2 * n_fourier_features, 10, tanh),
+    Lux.Dense(10, 10, tanh),
+    Lux.Dense(10, 10, tanh),
+    Lux.Dense(10, 3, tanh),
+    # Output function to scale output to have norm less than ωmax
+    Lux.WrappedFunction(x -> scale_norm(ω₀ * x; scale = ω₀))
+)
+
 println("Benchmarking in a total of $(length(params_benchmark)) combinations. This will required a total maximum of ~$(length(params_benchmark) * BenchmarkTools.DEFAULT_PARAMETERS.seconds / 60) minutes.")
 
 benchmark_data = []
@@ -116,7 +138,7 @@ header = (
     ["", "", "", "", "", "[ns]", "", "bites"]
 )
 
-for params in params_benchmarks
+for params in params_benchmark
     @show params.sensealg
     @show params.out_of_place
     try
@@ -128,9 +150,9 @@ for params in params_benchmarks
         end
         println("## Benchmark of $(params.reg), $(params.sensealg), tolerance = $(params.reltol)")
         println("> Training for a total of $(params.niter_ADAM+params.niter_LBFGS) epochs")
-        trial = @benchmark train(data, $params, $rng, nothing, nothing)
-        # display(trial)
-        # println("")
+        trial = @benchmark train(data, $params, $rng, nothing, U)
+        display(trial)
+        println("")
         push!(benchmark_data, ["$(params.sensealg)", "$(params.reg)", "$(params.solver)", "$(params.reltol)", "$(params.out_of_place)", mean(trial.times), trial.allocs, trial.memory])
     catch _err
         @warn "Simulation with $(params) did not work."
