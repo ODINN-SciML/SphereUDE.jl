@@ -137,17 +137,14 @@ function train(
         optprob2 = Optimization.OptimizationProblem(optf, res1.u)
         res2 = Optimization.solve(
             optprob2,
-            Optim.BFGS(;
-                linesearch = LineSearches.BackTracking(
-                    c_1 = 1e-2,
-                    iterations = 10,
-                ),
+            Optim.LBFGS(;
+                alphaguess = LineSearches.InitialStatic(alpha = 0.01),
+                linesearch = LineSearches.HagerZhang(),
             ),
             callback = callback,
             maxiters = params.niter_LBFGS,
             successive_f_tol = 10,
-            # g_tol = NaN # This disables stop criteria!
-            g_abstol = 1e-12, # Toletance in the norm of the gradient
+            g_abstol = 1e-6,
         )
     else
         res2 = res1

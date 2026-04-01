@@ -49,7 +49,7 @@ function SphereParameters(;
     solver::AbstractDEAlgorithm = Tsit5(),
     adtype::Optimization.AbstractADType = AutoZygote(),
     sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm, ADJ} =
-        QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
+        InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
     out_of_place::Bool = false,
     pretrain::Bool = false,
     hyperparameter_balance::Bool = false,
