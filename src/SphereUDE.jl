@@ -10,6 +10,7 @@ using ChainRules: @ignore_derivatives
 using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using SciMLSensitivity, ForwardDiff
 using Optimization, OptimizationOptimisers, OptimizationOptimJL, LineSearches
+using Optimisers
 using ComponentArrays
 using Plots
 using PrettyTables, Printf

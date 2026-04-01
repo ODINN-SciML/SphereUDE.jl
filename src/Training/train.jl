@@ -67,12 +67,28 @@ function train(
         end
         # Define the loss function with just empirical component
         f_loss_empirical(β) = loss_empirical(β, data, params, U, st)
-        optf₀ =
-            Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
-        optprob₀ = Optimization.OptimizationProblem(optf₀, β)
+        if isa(params.sensealg, AbstractAdjointMethod)
+            # Custom adjoint methods (e.g. SphereBackSolveAdjoint) cannot be differentiated
+            # by Zygote — use the custom gradient for pretraining as well
+            loss_grad_pretrain!(_dβ, _β, _p) =
+                rotation_grad!(_dβ, _β, data, params, U, st, params.sensealg)
+            optf₀ = Optimization.OptimizationFunction(
+                (x, β) -> f_loss_empirical(x),
+                grad = loss_grad_pretrain!,
+                NoAD(),
+            )
+            # NoAD() + custom grad requires a DataLoader so OptimizationOptimisers
+            # calls f(u, p) with two args instead of f(u) with one
+            pretrain_loader = DataLoader([666.0], batchsize = 1, shuffle = false)
+            optprob₀ = Optimization.OptimizationProblem(optf₀, β, pretrain_loader)
+        else
+            optf₀ =
+                Optimization.OptimizationFunction((x, β) -> f_loss_empirical(x), params.adtype)
+            optprob₀ = Optimization.OptimizationProblem(optf₀, β)
+        end
         res₀ = Optimization.solve(
             optprob₀,
-            ADAM(params.ADAM_learning_rate),
+            Optimisers.Adam(params.ADAM_learning_rate, (0.0, 0.999)),
             callback = callback_pretrain,
             maxiters = n_pretrain,
             verbose = false,
@@ -109,7 +125,7 @@ function train(
 
     res1 = Optimization.solve(
         optprob,
-        ADAM(params.ADAM_learning_rate),
+        Optimisers.Adam(params.ADAM_learning_rate, (0.0, 0.999)),
         callback = callback,
         maxiters = params.niter_ADAM,
         verbose = true,
@@ -122,13 +138,13 @@ function train(
         res2 = Optimization.solve(
             optprob2,
             Optim.BFGS(;
-                initial_stepnorm = 0.01,
-                # linesearch = LineSearches.BackTracking(iterations = 10)
-                linesearch = LineSearches.HagerZhang(),
+                linesearch = LineSearches.BackTracking(
+                    c_1 = 1e-2,
+                    iterations = 10,
+                ),
             ),
             callback = callback,
             maxiters = params.niter_LBFGS,
-            allow_f_increases = true,
             successive_f_tol = 10,
             # g_tol = NaN # This disables stop criteria!
             g_abstol = 1e-12, # Toletance in the norm of the gradient
@@ -137,8 +153,15 @@ function train(
         res2 = res1
     end
 
-    # Optimized NN parameters
-    β_trained = res2.u
+    # Optimized NN parameters — fall back to ADAM result if LBFGS diverged
+    l_adam, _ = f_loss(res1.u)
+    l_lbfgs, _ = f_loss(res2.u)
+    if l_lbfgs > l_adam
+        @warn "LBFGS increased the loss ($(l_adam) → $(l_lbfgs)). Falling back to ADAM result."
+        β_trained = res1.u
+    else
+        β_trained = res2.u
+    end
     θ_trained = β_trained.θ
 
     # Optimized initial condition
@@ -156,11 +179,13 @@ function train(
     # Recover final balance between different terms involved in the loss function to assess hyperparameter selection.
     _, loss_dict = f_loss(β_trained)
     if params.verbose
-        println("Final training loss after $(length(losses)) iterations: $(losses[end])")
+        total_loss = sum(values(loss_dict))
+        println("Final training loss after $(length(losses)) iterations: $(total_loss)")
         sorted_keys = sort(collect(keys(loss_dict)))
         pretty_table(
             hcat(sorted_keys, [loss_dict[k] for k in sorted_keys]);
             column_labels = ["Loss term", "Value"],
+            style = TextTableStyle(first_line_column_label = crayon"yellow bold"),
         )
     end
 
