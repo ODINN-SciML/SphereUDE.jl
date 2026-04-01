@@ -17,7 +17,13 @@ function rotation_grad!(
     # Compute final solution of forward model
     t₀, t₁ = params.tmin, params.tmax
 
-    u_final = predict(β, params, [t₁], U, st)
+    _u = predict(β, params, [t₁], U, st)
+    if !(_u isa AbstractArray) || !all(isfinite, _u)
+        @error "[SphereUDE] Forward solve failed (non-finite solution) — cannot compute backsolve adjoint gradient. Returning zero gradient. Try a different random seed or smaller ωmax."
+        dβ .= 0
+        return
+    end
+    u_final = vec(_u)
     λ_final = [0.0, 0.0, 0.0]
 
     v₁ = [u_final; λ_final]

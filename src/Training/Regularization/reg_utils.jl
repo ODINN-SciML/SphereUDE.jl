@@ -58,7 +58,7 @@ function regularization(
             l_ += l_AD
 
             # Test every a few iterations that AD is working properly
-            ignore() do
+            @ignore_derivatives begin
                 if rand(Bernoulli(0.1))
                     l_FD = numerical_integral(
                         t -> norm(central_fdm(τ -> smodel([τ]), t, 1e-8))^reg.power,

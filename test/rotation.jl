@@ -57,6 +57,9 @@ function test_single_rotation(;
         regs = nothing
     end
 
+    # DummyAdjoint returns a random gradient, so LBFGS is meaningless
+    niter_LBFGS = typeof(sensealg) <: SphereUDE.DummyAdjoint ? 0 : 51
+
     params = SphereParameters(
         tmin = tspan[1],
         tmax = tspan[2],
@@ -69,7 +72,7 @@ function test_single_rotation(;
         reltol = 1e-12,
         abstol = 1e-12,
         niter_ADAM = 101,
-        niter_LBFGS = 51,
+        niter_LBFGS = niter_LBFGS,
         verbose_step = 50,
         sensealg = sensealg,
     )

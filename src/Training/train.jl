@@ -157,7 +157,11 @@ function train(
     _, loss_dict = f_loss(β_trained)
     if params.verbose
         println("Final training loss after $(length(losses)) iterations: $(losses[end])")
-        pretty_table(loss_dict, sortkeys = true, header = ["Loss term", "Value"])
+        sorted_keys = sort(collect(keys(loss_dict)))
+        pretty_table(
+            hcat(sorted_keys, [loss_dict[k] for k in sorted_keys]);
+            column_labels = ["Loss term", "Value"],
+        )
     end
 
     return Results(

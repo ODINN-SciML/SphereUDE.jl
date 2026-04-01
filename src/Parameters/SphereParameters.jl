@@ -5,7 +5,7 @@ abstract type AbstractParameters end
 """
 Training parameters
 """
-@kwdef struct SphereParameters{F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:AbstractQuadrature} <: AbstractParameters
+struct SphereParameters{F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:AbstractQuadrature} <: AbstractParameters
     tmin::F
     tmax::F
     u0::Union{Vector{F},SVector{3,F},Nothing}

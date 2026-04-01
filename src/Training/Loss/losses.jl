@@ -165,10 +165,21 @@ function predict(
         @warn "Backsolve adjoint requires to saveat initial and final time of the simulation"
     end
 
-    # If numerical integration fails or bad choice of parameter, return infinity
-    if sol.retcode != :Success
-        @warn "[SphereUDE] Numerical solver not converging. This can be causes by numerical innestabilities around a bad choice of parameter. This can be due to just a bad initial condition of the neural network, so it is worth changing the randon number used for initialization. "
-        return Inf
+    # If numerical integration fails or bad choice of parameter, throw an error
+    if sol.retcode != ReturnCode.Success
+        error("""
+        [SphereUDE] ODE solver failed with retcode $(sol.retcode).
+
+        This is usually caused by one of the following:
+          • A bad neural network initialization producing extreme angular velocities.
+            → Try a different random seed or reduce ωmax in SphereParameters.
+          • Tolerances (reltol/abstol) that are too tight for the chosen solver.
+            → Try relaxing tolerances or switching to a stiffer solver.
+          • Numerical instability in the ODE right-hand side during early training
+            when NN weights are still far from a good solution.
+
+        Parameters: tmin=$(params.tmin), tmax=$(params.tmax), solver=$(typeof(params.solver)), reltol=$(params.reltol), abstol=$(params.abstol)
+        """)
     end
 
     return Array(sol)
