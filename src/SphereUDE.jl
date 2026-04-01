@@ -11,8 +11,7 @@ using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using SciMLSensitivity, ForwardDiff
 using Optimization, OptimizationOptimisers, OptimizationOptimJL, LineSearches
 using ComponentArrays
-# using PyPlot, PyCall
-using PythonCall, CondaPkg
+using Plots
 using PrettyTables, Printf
 using SciMLBase: NoAD
 using DiffEqBase: AbstractDEAlgorithm
@@ -56,16 +55,5 @@ include("Results/result_utils.jl")
 # Plotting
 include("Plot/plot.jl")
 
-
-# We define empty objects for the Python packages
-const mpl_base = Ref{Py}()
-const mpl_colors = Ref{Py}()
-const mpl_colormap = Ref{Py}()
-const plt = Ref{Py}()
-const sns = Ref{Py}()
-const ccrs = Ref{Py}()
-const feature = Ref{Py}()
-
-include("setup/config.jl")
 
 end

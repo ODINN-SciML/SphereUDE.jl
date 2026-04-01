@@ -13,30 +13,20 @@ using Lux: Chain
 """
 
 Return a default neural network for those cases where NN has not being provided by user.
+Input is scaled to [-1, 1] via `scale_input`, expanded with Fourier features, passed through
+tanh hidden layers, and the output norm is capped at `ωmax` via `scale_norm`.
 """
 function get_default_NN(params::AP, rng, θ_trained) where {AP<:AbstractParameters}
-    # Define default neural network
-
-    # For L1 regularization relu_cap works better, but for L2 I think is better to include sigmoid
-    if isL1reg(params.reg)
-        U = Lux.Chain(
-            Lux.Dense(1, 5, sigmoid),
-            Lux.Dense(5, 10, sigmoid),
-            Lux.Dense(10, 10, sigmoid),
-            Lux.Dense(10, 10, sigmoid),
-            Lux.Dense(10, 5, sigmoid),
-            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax)),
-        )
-    else
-        U = Lux.Chain(
-            Lux.Dense(1, 5, gelu),
-            Lux.Dense(5, 10, gelu),
-            Lux.Dense(10, 10, gelu),
-            Lux.Dense(10, 10, gelu),
-            Lux.Dense(10, 5, gelu),
-            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax)),
-        )
-    end
+    n_fourier = 4
+    U = Lux.Chain(
+        Lux.WrappedFunction(x -> scale_input(x; xmin = params.tmin, xmax = params.tmax)),
+        Lux.WrappedFunction(x -> fourier_feature(x; n = n_fourier)),
+        Lux.Dense(2 * n_fourier, 10, tanh),
+        Lux.Dense(10, 10, tanh),
+        Lux.Dense(10, 10, tanh),
+        Lux.Dense(10, 3, tanh),
+        Lux.WrappedFunction(x -> scale_norm(params.ωmax .* x; scale = params.ωmax)),
+    )
     return U
 end
 

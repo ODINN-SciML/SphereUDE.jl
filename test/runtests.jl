@@ -12,7 +12,6 @@ Random.seed!(666)
 include("constructors.jl")
 include("utils.jl")
 include("rotation.jl")
-include("python.jl")
 include("gradient.jl")
 include("regularization.jl")
 
@@ -27,11 +26,6 @@ include("regularization.jl")
         test_coordinate()
         test_complex_activation()
         test_integration()
-    end
-
-    @testset "Python Integration" begin
-        test_matplotplib()
-        # test_pmagpy()
     end
 
     @testset "Regularization with AD vs FD" begin
@@ -50,12 +44,18 @@ include("regularization.jl")
                 sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
                 use_regularization = false,
             )
-            # @testset "Quadrature" test_single_rotation(sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)), use_regularization = false)
+            @testset "Quadrature" test_single_rotation(
+                sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
+                use_regularization = false
+            )
             @testset "Gauss" test_single_rotation(
                 sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
                 use_regularization = false,
             )
-            # @testset "Backsolve" test_single_rotation(sensealg = BacksolveAdjoint(autojacvec = ReverseDiffVJP(true)), use_regularization = false)
+            @testset "Backsolve" test_single_rotation(
+                sensealg = BacksolveAdjoint(autojacvec = ReverseDiffVJP(true)),
+                use_regularization = false
+            )
         end
         @testset "SciMLSensitivity gradient (with regularization)" test_single_rotation(
             sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
