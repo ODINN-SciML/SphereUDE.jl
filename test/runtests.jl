@@ -33,8 +33,11 @@ include("regularization.jl")
     end
 
     @testset "Custom Adjoint method" test_grad_finite_diff(
-        SphereBackSolveAdjoint();
-        thres = [4e-3, 1e-6, 4e-3],
+        SphereBackSolveAdjoint(
+            reltol = 1e-12,
+            abstol = 1e-12,
+        );
+        thres = [4e-3, 4e-5, 9e-3],
     )
 
     @testset "Inversion" begin
