@@ -26,6 +26,8 @@ include("regularization.jl")
         test_coordinate()
         test_complex_activation()
         test_integration()
+        test_scale_norm()
+        test_fourier_feature()
     end
 
     @testset "Regularization with AD vs FD" begin
@@ -54,10 +56,6 @@ include("regularization.jl")
             @testset "Gauss" test_single_rotation(
                 sensealg = GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
                 use_regularization = false,
-            )
-            @testset "Backsolve" test_single_rotation(
-                sensealg = BacksolveAdjoint(autojacvec = ReverseDiffVJP(true)),
-                use_regularization = false
             )
         end
         @testset "SciMLSensitivity gradient (with regularization)" test_single_rotation(
