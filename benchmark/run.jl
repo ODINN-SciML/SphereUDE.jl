@@ -21,6 +21,10 @@ using OrdinaryDiffEqTsit5, OrdinaryDiffEqVerner, OrdinaryDiffEqHighOrderRK, Ordi
 
 println("# Performance benchmark")
 
+# Set to :light for a quick run of the top 5 methods,
+# or :heavy for the full sweep of all sensealgs and solvers.
+benchmark_mode = :light
+
 using Random
 rng = Random.default_rng()
 Random.seed!(666)
@@ -77,105 +81,155 @@ regularization_types = [
     # [Regularization(order = 1, power = 1.0, λ = 0.1, diff_mode = LuxNestedAD())],
 ]
 
-numerical_solver = [
-    Tsit5(),
-    Vern7(),
-    # Vern9(),
-    AutoTsit5(Rosenbrock23()),
-    DP8(),
-]
-
-sensealg_types = [
-    InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
-    InterpolatingAdjoint(autojacvec = ReverseDiffVJP(false)),
-    InterpolatingAdjoint(autojacvec = ZygoteVJP()),
-    InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true), checkpointing = true),
-    InterpolatingAdjoint(autojacvec = ZygoteVJP(), checkpointing = true),
-    BacksolveAdjoint(autojacvec = ReverseDiffVJP(true)),
-    BacksolveAdjoint(autojacvec = ReverseDiffVJP(false)),
-    BacksolveAdjoint(autojacvec = ZygoteVJP()),
-    BacksolveAdjoint(autojacvec = TrackerVJP()),
-    BacksolveAdjoint(autojacvec = ReverseDiffVJP(true), checkpointing = true),
-    BacksolveAdjoint(autojacvec = ZygoteVJP(), checkpointing = true),
-    QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
-    QuadratureAdjoint(autojacvec = ReverseDiffVJP(false)),
-    QuadratureAdjoint(autojacvec = ZygoteVJP()),
-    GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
-    GaussAdjoint(autojacvec = ReverseDiffVJP(false)),
-    GaussAdjoint(autojacvec = ZygoteVJP()),
-    GaussKronrodAdjoint(autojacvec = ReverseDiffVJP(true)),
-    GaussKronrodAdjoint(autojacvec = ReverseDiffVJP(false)),
-    ZygoteAdjoint(),
-    ReverseDiffAdjoint(),
-    TrackerAdjoint(),
-    # QuadratureAdjoint(autojacvec = MooncakeVJP()),  # MooncakeVJP not available in current SciMLSensitivity version
-    MooncakeAdjoint(),
-    SphereBackSolveAdjoint(),
-]
-
 tolerances = [1e-6]
 
 # BenchmarkTools evaluates things at global scope
 params_benchmark = []
 
-# Main sweep: all sensealgs, in-place
-for tol in tolerances, regs in regularization_types, solver in numerical_solver, sensealg in sensealg_types
+if benchmark_mode == :light
 
-    if typeof(sensealg) <: SphereBackSolveAdjoint
-        sensealg = SphereBackSolveAdjoint(
-            solver = sensealg.solver,
+    # -------------------------------------------------------
+    # Light mode: best method per sensealg family (Tsit5 unless noted),
+    # plus the two fastest overall (ReverseDiffAdjoint + SphereBackSolveAdjoint)
+    # also tested with AutoTsit5 to check solver sensitivity.
+    # -------------------------------------------------------
+    light_combos = [
+        # Top 2 overall — also compare solvers
+        (ReverseDiffAdjoint(),                                          Tsit5()),
+        (ReverseDiffAdjoint(),                                          AutoTsit5(Rosenbrock23())),
+        (SphereBackSolveAdjoint(),                                      Tsit5()),
+        (SphereBackSolveAdjoint(),                                      AutoTsit5(Rosenbrock23())),
+        # Best per SciMLSensitivity family (all with Tsit5)
+        (InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),       Tsit5()),
+        (BacksolveAdjoint(autojacvec = ReverseDiffVJP(true)),           Tsit5()),
+        (GaussAdjoint(autojacvec = ReverseDiffVJP(true)),               Tsit5()),
+        (QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),          Tsit5()),
+        (GaussKronrodAdjoint(autojacvec = ReverseDiffVJP(true)),        Tsit5()),
+    ]
+
+    for tol in tolerances, regs in regularization_types, (sensealg, solver) in light_combos
+        if typeof(sensealg) <: SphereBackSolveAdjoint
+            sensealg = SphereBackSolveAdjoint(reltol = tol, abstol = tol)
+        end
+        params = SphereParameters(
+            tmin = tspan[1],
+            tmax = tspan[2],
+            reg = regs,
+            train_initial_condition = false,
+            out_of_place = false,
+            multiple_shooting = false,
+            u0 = [0.0, 0.0, -1.0],
+            ωmax = ω₀,
+            solver = solver,
             reltol = tol,
-            abstol = tol
+            abstol = tol,
+            niter_ADAM = 20,
+            niter_LBFGS = 0,
+            verbose = false,
+            sensealg = sensealg,
         )
+        push!(params_benchmark, params)
     end
 
-    params = SphereParameters(
-        tmin = tspan[1],
-        tmax = tspan[2],
-        reg = regs,
-        train_initial_condition = false,
-        out_of_place = false,
-        multiple_shooting = false,
-        u0 = [0.0, 0.0, -1.0],
-        ωmax = ω₀,
-        solver = solver,
-        reltol = tol,
-        abstol = tol,
-        niter_ADAM = 10,
-        niter_LBFGS = 10,
-        verbose = false,
-        sensealg = sensealg,
-    )
-    push!(params_benchmark, params)
-end
+else  # :heavy
 
-# ZygoteVJP in-place vs out-of-place comparison (one solver per sensealg variant)
-zygote_sensealgs = [
-    InterpolatingAdjoint(autojacvec = ZygoteVJP()),
-    QuadratureAdjoint(autojacvec = ZygoteVJP()),
-    GaussAdjoint(autojacvec = ZygoteVJP()),
-    BacksolveAdjoint(autojacvec = ZygoteVJP()),
-]
-for tol in tolerances, regs in regularization_types, sensealg in zygote_sensealgs, place in [true, false]
-    params = SphereParameters(
-        tmin = tspan[1],
-        tmax = tspan[2],
-        reg = regs,
-        train_initial_condition = false,
-        out_of_place = place,
-        multiple_shooting = false,
-        u0 = [0.0, 0.0, -1.0],
-        ωmax = ω₀,
-        solver = Tsit5(),
-        reltol = tol,
-        abstol = tol,
-        niter_ADAM = 10,
-        niter_LBFGS = 10,
-        verbose = false,
-        sensealg = sensealg,
-    )
-    push!(params_benchmark, params)
-end
+    # -------------------------------------------------------
+    # Heavy mode: full sweep — all sensealgs × all solvers
+    # -------------------------------------------------------
+    numerical_solver = [
+        Tsit5(),
+        Vern7(),
+        # Vern9(),
+        AutoTsit5(Rosenbrock23()),
+        DP8(),
+    ]
+
+    sensealg_types = [
+        InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
+        InterpolatingAdjoint(autojacvec = ReverseDiffVJP(false)),
+        InterpolatingAdjoint(autojacvec = ZygoteVJP()),
+        InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true), checkpointing = true),
+        InterpolatingAdjoint(autojacvec = ZygoteVJP(), checkpointing = true),
+        BacksolveAdjoint(autojacvec = ReverseDiffVJP(true)),
+        BacksolveAdjoint(autojacvec = ReverseDiffVJP(false)),
+        BacksolveAdjoint(autojacvec = ZygoteVJP()),
+        BacksolveAdjoint(autojacvec = TrackerVJP()),
+        BacksolveAdjoint(autojacvec = ReverseDiffVJP(true), checkpointing = true),
+        BacksolveAdjoint(autojacvec = ZygoteVJP(), checkpointing = true),
+        QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
+        QuadratureAdjoint(autojacvec = ReverseDiffVJP(false)),
+        QuadratureAdjoint(autojacvec = ZygoteVJP()),
+        GaussAdjoint(autojacvec = ReverseDiffVJP(true)),
+        GaussAdjoint(autojacvec = ReverseDiffVJP(false)),
+        GaussAdjoint(autojacvec = ZygoteVJP()),
+        GaussKronrodAdjoint(autojacvec = ReverseDiffVJP(true)),
+        GaussKronrodAdjoint(autojacvec = ReverseDiffVJP(false)),
+        ZygoteAdjoint(),
+        ReverseDiffAdjoint(),
+        TrackerAdjoint(),
+        # QuadratureAdjoint(autojacvec = MooncakeVJP()),  # MooncakeVJP not available in current SciMLSensitivity version
+        MooncakeAdjoint(),
+        SphereBackSolveAdjoint(),
+    ]
+
+    # Main sweep: all sensealgs × all solvers, in-place
+    for tol in tolerances, regs in regularization_types, solver in numerical_solver, sensealg in sensealg_types
+        if typeof(sensealg) <: SphereBackSolveAdjoint
+            sensealg = SphereBackSolveAdjoint(
+                solver = sensealg.solver,
+                reltol = tol,
+                abstol = tol
+            )
+        end
+        params = SphereParameters(
+            tmin = tspan[1],
+            tmax = tspan[2],
+            reg = regs,
+            train_initial_condition = false,
+            out_of_place = false,
+            multiple_shooting = false,
+            u0 = [0.0, 0.0, -1.0],
+            ωmax = ω₀,
+            solver = solver,
+            reltol = tol,
+            abstol = tol,
+            niter_ADAM = 20,
+            niter_LBFGS = 0,
+            verbose = false,
+            sensealg = sensealg,
+        )
+        push!(params_benchmark, params)
+    end
+
+    # ZygoteVJP in-place vs out-of-place comparison (one solver per sensealg variant)
+    zygote_sensealgs = [
+        InterpolatingAdjoint(autojacvec = ZygoteVJP()),
+        QuadratureAdjoint(autojacvec = ZygoteVJP()),
+        GaussAdjoint(autojacvec = ZygoteVJP()),
+        BacksolveAdjoint(autojacvec = ZygoteVJP()),
+    ]
+    for tol in tolerances, regs in regularization_types, sensealg in zygote_sensealgs, place in [true, false]
+        params = SphereParameters(
+            tmin = tspan[1],
+            tmax = tspan[2],
+            reg = regs,
+            train_initial_condition = false,
+            out_of_place = place,
+            multiple_shooting = false,
+            u0 = [0.0, 0.0, -1.0],
+            ωmax = ω₀,
+            solver = Tsit5(),
+            reltol = tol,
+            abstol = tol,
+            niter_ADAM = 20,
+            niter_LBFGS = 0,
+            verbose = false,
+            sensealg = sensealg,
+        )
+        push!(params_benchmark, params)
+    end
+
+end  # benchmark_mode
 
 println("Benchmarking in a total of $(length(params_benchmark)) combinations.")
 
