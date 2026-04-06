@@ -5,7 +5,7 @@ abstract type AbstractParameters end
 """
 Training parameters
 """
-@kwdef struct SphereParameters{F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:AbstractQuadrature} <: AbstractParameters
+struct SphereParameters{F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:AbstractQuadrature} <: AbstractParameters
     tmin::F
     tmax::F
     u0::Union{Vector{F},SVector{3,F},Nothing}
@@ -49,7 +49,7 @@ function SphereParameters(;
     solver::AbstractDEAlgorithm = Tsit5(),
     adtype::Optimization.AbstractADType = AutoZygote(),
     sensealg::Union{SciMLBase.AbstractAdjointSensitivityAlgorithm, ADJ} =
-        QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
+        InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
     out_of_place::Bool = false,
     pretrain::Bool = false,
     hyperparameter_balance::Bool = false,

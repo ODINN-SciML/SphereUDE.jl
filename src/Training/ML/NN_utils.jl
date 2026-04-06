@@ -13,30 +13,20 @@ using Lux: Chain
 """
 
 Return a default neural network for those cases where NN has not being provided by user.
+Input is scaled to [-1, 1] via `scale_input`, expanded with Fourier features, passed through
+tanh hidden layers, and the output norm is capped at `ωmax` via `scale_norm`.
 """
 function get_default_NN(params::AP, rng, θ_trained) where {AP<:AbstractParameters}
-    # Define default neural network
-
-    # For L1 regularization relu_cap works better, but for L2 I think is better to include sigmoid
-    if isL1reg(params.reg)
-        U = Lux.Chain(
-            Lux.Dense(1, 5, sigmoid),
-            Lux.Dense(5, 10, sigmoid),
-            Lux.Dense(10, 10, sigmoid),
-            Lux.Dense(10, 10, sigmoid),
-            Lux.Dense(10, 5, sigmoid),
-            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax)),
-        )
-    else
-        U = Lux.Chain(
-            Lux.Dense(1, 5, gelu),
-            Lux.Dense(5, 10, gelu),
-            Lux.Dense(10, 10, gelu),
-            Lux.Dense(10, 10, gelu),
-            Lux.Dense(10, 5, gelu),
-            Lux.Dense(5, 3, Base.Fix2(sigmoid_cap, params.ωmax)),
-        )
-    end
+    n_fourier = 4
+    U = Lux.Chain(
+        Lux.WrappedFunction(x -> scale_input(x; xmin = params.tmin, xmax = params.tmax)),
+        Lux.WrappedFunction(x -> fourier_feature(x; n = n_fourier)),
+        Lux.Dense(2 * n_fourier, 10, tanh),
+        Lux.Dense(10, 10, tanh),
+        Lux.Dense(10, 10, tanh),
+        Lux.Dense(10, 3, tanh),
+        Lux.WrappedFunction(x -> scale_norm(params.ωmax .* x; scale = params.ωmax)),
+    )
     return U
 end
 
@@ -91,10 +81,11 @@ function scale_norm(x; scale = 1.0)
     return (scale * tanh(norm(x) / scale)) .* (x ./ norm(x))
 end
 
-# Extension to work with batched jacobian
+# Extension to work with batched jacobian — vectorized over columns
 function scale_norm(X::Matrix; scale = 1.0)
-    @assert size(X)[1] == 3
-    return reduce(hcat, map(x -> scale_norm(x; scale = scale), eachcol(X)))
+    @assert size(X, 1) == 3
+    norms = vec(sqrt.(sum(abs2, X; dims = 1)))
+    return (scale .* tanh.(norms' ./ scale)) .* (X ./ norms')
 end
 
 # Fourier features
@@ -106,9 +97,10 @@ function fourier_feature(v; n = 10)
     return [a₁ .* sin.(π .* W .* v); b₁ .* cos.(π .* W .* v)]
 end
 
-# Extension to work with batched_jacobian
+# Extension to work with batched_jacobian — fully vectorized over columns
 function fourier_feature(X::Matrix; n = 10)
-    return reduce(hcat, map(x -> fourier_feature(x; n = n), eachcol(X)))
+    W = collect(1.0:Float64(n))
+    return [sin.(π .* W .* X); cos.(π .* W .* X)]
 end
 
 ### Complex Expansion Activation Functions

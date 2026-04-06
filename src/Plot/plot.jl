@@ -1,91 +1,126 @@
-# export mpl_colors, mpl_colormap, sns, ccrs, feature, cmap
 export plot_sphere, plot_L
 
 """
-Generate matplotlib grid template for figure
-"""
-# function generate_sphere_figure(grid::Tuple{Number, Number},
-#                                 size::Tuple{Number, Number})
-#                                 # central_latitude::Number,
-#                                 # central_longitude::Number)
-#     fig, axes = plt.subplots(nrows=grid[1], ncols=grid[2], figsize=size)
-#     return fig, axes
-# end
-
-"""
-Create spherical figure with observations (points), latent variable, and fitter path.
+Plot data points and the fitted path on a globe using an orthographic projection,
+matching the visual style of Cartopy's globe view.
+`central_latitude` and `central_longitude` control the viewing centre.
 """
 function plot_sphere(
-    # ax::PyCall.PyObject,
     data::AbstractData,
     results::AbstractResult,
-    #  X_points::Matrix{Float64},
-    #  X_path::Matrix{Float64}
-    central_latitude::Float64,
-    central_longitude::Float64;
-    saveas::Union{String,Nothing},
-    title::String,
-    matplotlib_rcParams::Union{Dict,Nothing} = nothing,
+    central_latitude::Union{Float64,Nothing} = nothing,
+    central_longitude::Union{Float64,Nothing} = nothing;
+    saveas::Union{String,Nothing} = nothing,
+    title::String = "",
 )
+    lat_c = isnothing(central_latitude) ? 0.0 : central_latitude
+    lon_c = isnothing(central_longitude) ? 0.0 : central_longitude
+    φ_c = deg2rad(lat_c)
+    λ_c = deg2rad(lon_c)
 
-    # cmap = mpl_colormap.get_cmap("viridis")
-
-    plt[].figure(figsize = (10, 10))
-    ax = plt[].axes(
-        projection = ccrs[].Orthographic(
-            central_latitude = central_latitude,
-            central_longitude = central_longitude,
-        ),
-    )
-
-    # Set default plot parameters. 
-    # See https://matplotlib.org/stable/users/explain/customizing.html for customizable optionsz
-    if !isnothing(matplotlib_rcParams)
-        for (key, value) in matplotlib_rcParams
-            @warn "Setting Matplotlib parameters with rcParams currently not working. See following GitHub issue: https://github.com/JuliaPy/PyPlot.jl/issues/525"
-            mpl_base[].rcParams[key] = value
-        end
+    # Orthographic projection: returns (x, y, cos_c) where cos_c > 0 means visible
+    function ortho(lat_deg, lon_deg)
+        φ = deg2rad(lat_deg)
+        λ = deg2rad(lon_deg)
+        cos_c = sin(φ_c) * sin(φ) + cos(φ_c) * cos(φ) * cos(λ - λ_c)
+        x = cos(φ) * sin(λ - λ_c)
+        y = cos(φ_c) * sin(φ) - sin(φ_c) * cos(φ) * cos(λ - λ_c)
+        return x, y, cos_c
     end
 
-    ax.coastlines()
-    ax.gridlines()
-    ax.set_global()
+    # Convert Cartesian directions to lat/lon
+    X_sph = cart2sph(data.directions; radians = false)
+    lats_d = X_sph[1, :]
+    lons_d = X_sph[2, :]
 
-    X_true_points = cart2sph(data.directions, radians = false)
-    X_fit_path = cart2sph(results.fit_directions, radians = false)
+    X_fit_sph = cart2sph(results.fit_directions; radians = false)
+    lats_f = X_fit_sph[1, :]
+    lons_f = X_fit_sph[2, :]
 
-    # Plots in Python follow the long, lat ordering
+    # Project data points
+    proj_d   = [ortho(lats_d[i], lons_d[i]) for i in eachindex(lats_d)]
+    xd       = [q[1] for q in proj_d]
+    yd       = [q[2] for q in proj_d]
+    visible_d = [q[3] > 0 for q in proj_d]
 
-    sns[].scatterplot(
-        ax = ax,
-        x = X_true_points[2, :],
-        y = X_true_points[1, :],
-        hue = data.times,
-        s = 150,
-        palette = "viridis",
-        transform = ccrs[].PlateCarree(),
+    # Project fit path — set invisible segments to NaN to break the line
+    proj_f = [ortho(lats_f[i], lons_f[i]) for i in eachindex(lats_f)]
+    xf     = Float64[q[1] for q in proj_f]
+    yf     = Float64[q[2] for q in proj_f]
+    vf     = [q[3] > 0 for q in proj_f]
+    xf[.!vf] .= NaN
+    yf[.!vf] .= NaN
+
+    # --- Build the plot ---
+    θs = range(0, 2π; length = 361)
+
+    # Globe background (filled circle)
+    globe_shape = Shape(cos.(θs), sin.(θs))
+    p = plot(
+        globe_shape;
+        fillcolor      = :aliceblue,
+        linecolor      = :black,
+        linewidth      = 1.5,
+        label          = "",
+        aspect_ratio   = 1,
+        axis           = false,
+        grid           = false,
+        title          = title,
+        xlims          = (-1.2, 1.2),
+        ylims          = (-1.2, 1.2),
+        size           = (600, 600),
     )
 
-    for i = 1:(length(results.fit_times)-1)
-        plt[].plot(
-            [X_fit_path[2, i], X_fit_path[2, i+1]],
-            [X_fit_path[1, i], X_fit_path[1, i+1]],
-            linewidth = 2,
-            color = "black",
-            transform = ccrs[].Geodetic(),
+    # Graticule lines every 30°
+    for lat in -60:30:60
+        lons = range(-180, 180; length = 361)
+        qs = [ortho(lat, lon) for lon in lons]
+        x_ = Float64[q[1] for q in qs];  y_ = Float64[q[2] for q in qs]
+        x_[[q[3] ≤ 0 for q in qs]] .= NaN
+        y_[[q[3] ≤ 0 for q in qs]] .= NaN
+        lw = lat == 0 ? 0.8 : 0.4
+        plot!(p, x_, y_; color = :gray60, linewidth = lw, label = "")
+    end
+    for lon in -180:30:150
+        lats = range(-89, 89; length = 180)
+        qs = [ortho(lat, lon) for lat in lats]
+        x_ = Float64[q[1] for q in qs];  y_ = Float64[q[2] for q in qs]
+        x_[[q[3] ≤ 0 for q in qs]] .= NaN
+        y_[[q[3] ≤ 0 for q in qs]] .= NaN
+        plot!(p, x_, y_; color = :gray60, linewidth = 0.4, label = "")
+    end
+
+    # Data points (only visible hemisphere)
+    vis_idx = findall(visible_d)
+    if !isempty(vis_idx)
+        scatter!(p, xd[vis_idx], yd[vis_idx];
+            marker_z          = data.times[vis_idx],
+            color             = :viridis,
+            markersize        = 6,
+            markerstrokewidth = 0.5,
+            markerstrokecolor = :black,
+            alpha             = 0.6,
+            label             = "Observations",
+            colorbar_title    = "Age (Ma)",
         )
     end
-    # plt.title(title, fontsize=20)
-    if !isnothing(saveas)
-        plt[].savefig(saveas, format = "pdf")
-    end
 
-    return nothing
+    # Fit path — plotted after points so it sits on top
+    plot!(p, xf, yf; color = :black, linewidth = 3.5, label = "Estimated APWP",
+        legend = :topleft)
+
+    # Redraw globe boundary on top so it clips cleanly
+    plot!(p, cos.(θs), sin.(θs); color = :black, linewidth = 1.5, label = "")
+
+    if !isnothing(saveas)
+        savefig(p, saveas)
+    end
+    return p
 end
 
 
 """
-Plot fitted rotation
+Plot fitted rotation (angular velocity over time).
 """
 function plot_L(
     data::AbstractData,
@@ -93,31 +128,28 @@ function plot_L(
     saveas::Union{String,Nothing},
     title::String,
 )
-
-    fig, ax = plt[].subplots(figsize = (10, 5))
-
     times_smooth = collect(LinRange(results.fit_times[begin], results.fit_times[end], 1000))
     Ls = reduce(hcat, (t -> results.U([t], results.θ, results.st)[1]).(times_smooth))
-
     angular_velocity = mapslices(x -> norm(x), Ls, dims = 1)[1, :]
 
-    ax.plot(times_smooth, angular_velocity, label = "Estimated")
+    p = plot(
+        times_smooth,
+        angular_velocity;
+        label = "Estimated",
+        xlabel = "Time",
+        ylabel = "Angular Velocity",
+        title = title,
+    )
 
     if !isnothing(data.L)
         Ls_true = reduce(hcat, data.L.(times_smooth))
         angular_velocity_true = mapslices(x -> norm(x), Ls_true, dims = 1)[1, :]
-        ax.plot(times_smooth, angular_velocity_true, label = "Reference")
+        plot!(p, times_smooth, angular_velocity_true; label = "Reference")
     end
-
-    # plt.title("")
-    plt[].xlabel("Time")
-    plt[].ylabel("Angular Velocity")
-    plt[].legend()
-    # plt.title(title)
 
     if !isnothing(saveas)
-        plt[].savefig(saveas, format = "pdf")
+        savefig(p, saveas)
     end
 
-    return nothing
+    return p
 end
