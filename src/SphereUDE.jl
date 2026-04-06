@@ -19,9 +19,6 @@ using DiffEqBase: AbstractDEAlgorithm
 using MLUtils: DataLoader
 using StaticArrays
 
-# Debugging
-using Infiltrator
-
 # Data Types
 include("DiffEq/adjoint.jl")
 include("Training/Regularization/Quadrature.jl")

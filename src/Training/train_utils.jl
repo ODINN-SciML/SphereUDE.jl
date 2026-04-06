@@ -28,7 +28,6 @@ function callback_print(p, l, params, losses, f_loss)
     if length(losses) % step == 0 || length(losses) == 1
         _l, l_dict = f_loss(p.u)
         if !isapprox(l, _l, rtol = 1e-2) & params.verbose & (length(losses) > 200)
-            SphereUDE.@infiltrate
             @warn """
             Loss function computed during epoch training (loss = $(l)) does not coincide
             with the one computed after training (loss = $(_l)). This can be cause by an
