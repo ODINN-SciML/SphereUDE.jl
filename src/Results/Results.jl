@@ -9,8 +9,7 @@ Final results
     params::SphereParameters
     θ::ComponentVector
     u0::Union{Vector{F},SVector{3,F}}
-    U::Lux.AbstractLuxLayer
-    st::NamedTuple
+    regressor::AbstractRegressor
     fit_times::Vector{F}
     fit_directions::Matrix{F}
     fit_rotations::Matrix{F}

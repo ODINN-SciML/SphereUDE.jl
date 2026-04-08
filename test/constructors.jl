@@ -1,4 +1,48 @@
 
+function make_test_regressors(params, rng)
+    # List of (regressor, θ₀) pairs to test against the AbstractRegressor interface.
+    # Add new regressors here as they are implemented.
+    nn = get_default_NN(params, rng, nothing)
+    return [NNRegressor(nn, rng)]
+end
+
+function test_regressor_interface()
+
+    rng = Random.default_rng()
+    Random.seed!(rng, 42)
+
+    params = SphereParameters(
+        tmin = 0.0, tmax = 10.0,
+        u0 = [0.0, 0.0, 1.0],
+        ωmax = 0.1,
+        niter_ADAM = 0, niter_LBFGS = 0,
+    )
+
+    t_test = 5.0
+
+    for (regressor, θ₀) in make_test_regressors(params, rng)
+        @info "Testing regressor interface | type=$(typeof(regressor))"
+
+        # Type hierarchy
+        @test regressor isa AbstractRegressor
+        @test θ₀ isa AbstractVector
+
+        # Forward call returns a 3-vector
+        L = regressor(t_test, θ₀)
+        @test length(L) == 3
+
+        # jacobian_params returns a (3 × |θ|) matrix
+        J = jacobian_params(regressor, t_test, θ₀)
+        @test size(J, 1) == 3
+        @test size(J, 2) == length(θ₀)
+
+        # init_params returns a fresh ComponentVector of the same shape
+        θ₁ = init_params(regressor, rng)
+        @test size(θ₁) == size(θ₀)
+
+    end
+end
+
 function test_reg_constructor()
 
     reg = Regularization(

@@ -5,17 +5,16 @@ Cubic regularization from Jupp (1987)
 """
 function cubic_regularization(
     β::ComponentVector,
-    U::Chain,
-    st::NamedTuple,
+    regressor::NNRegressor,
     reg::CubicSplinesRegularization,
     params::AP,
 ) where {AP<:AbstractParameters}
 
-    smodel = StatefulLuxLayer{true}(U, β.θ, st)
+    smodel = StatefulLuxLayer{true}(regressor.model, β.θ, regressor.st)
 
     # Create prediction of solution time series in integration points
     nodes, weights = quadrature(params.tmin, params.tmax, params.quadrature.n_nodes)
-    u_ = predict(β, params, nodes, U, st)
+    u_ = predict(β, params, nodes, regressor)
 
     if typeof(reg.diff_mode) <: LuxNestedAD
         # Automatic Differentiation

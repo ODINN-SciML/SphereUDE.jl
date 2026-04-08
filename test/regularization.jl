@@ -43,11 +43,11 @@ function test_quadrature(thres = 1e-4)
         Lux.WrappedFunction(x -> scale_norm(ωmax * x; scale = ωmax)),
     )
 
-    θ, st = Lux.setup(rng, U)
-    β = SphereUDE.ComponentArray{Float64}(θ)
+    regressor, θ₀ = NNRegressor(U, rng)
+    β = SphereUDE.ComponentArray{Float64}(θ₀)
 
-    l_AD = regularization(β, U, st, only(reg_AD), params_AD)
-    l_FD = regularization(β, U, st, only(reg_FD), params_FD)
+    l_AD = regularization(β, regressor, only(reg_AD), params_AD)
+    l_FD = regularization(β, regressor, only(reg_FD), params_FD)
 
     @test isapprox(l_AD, l_FD, rtol = thres)
 end

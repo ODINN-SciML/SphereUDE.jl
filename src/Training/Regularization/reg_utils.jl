@@ -6,14 +6,13 @@ Regularization
 """
 function regularization(
     θ::ComponentVector,
-    U::Chain,
-    st::NamedTuple,
+    regressor::NNRegressor,
     reg::Regularization,
     params::AP,
 ) where {AP<:AbstractParameters}
 
     # Define Statefull Lux NN
-    smodel = StatefulLuxLayer{true}(U, θ, st)
+    smodel = StatefulLuxLayer{true}(regressor.model, θ, regressor.st)
 
     # Define number of elements for quadrature
     nodes, weights = extract_nodes_weights(params.tmin, params.tmax, params.quadrature)

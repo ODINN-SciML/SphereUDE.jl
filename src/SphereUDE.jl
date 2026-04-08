@@ -26,12 +26,15 @@ include("Parameters/SphereParameters.jl")
 include("Data/SphereData.jl")
 include("Data/data_utils.jl")
 
+# Regressor interface — must come before DiffEq which depends on AbstractRegressor
+include("Training/ML/Regressor.jl")
+include("Training/ML/NN_utils.jl")
+
 # Differential Equation support
 include("DiffEq/forward.jl")
 include("DiffEq/inverse.jl")
 
 # Training utils
-include("Training/ML/NN_utils.jl")
 include("Training/ML/numerical_utils.jl")
 include("Training/ML/AD.jl")
 

@@ -10,25 +10,24 @@ function train(
     params::AP,
     rng,
     θ_trained = [],
-    model::Union{Chain,Nothing} = nothing,
+    regressor::Union{AbstractRegressor,Nothing} = nothing,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Raise warnings
     raise_warnings(data::AD, params::AP)
 
-    # Set Neural Network
-    if isnothing(model)
-        U = get_default_NN(params, rng, θ_trained)
+    # Build regressor — default is a NNRegressor with the built-in architecture
+    if isnothing(regressor)
+        regressor, θ₀ = NNRegressor(get_default_NN(params, rng, θ_trained), rng)
     else
-        U = model
+        θ₀ = init_params(regressor, rng)
     end
-    θ, st = Lux.setup(rng, U)
 
     # Set component vector for Optimization
     if params.train_initial_condition
-        β = ComponentVector{Float64}(θ = θ, u0 = params.u0)
+        β = ComponentVector{Float64}(θ = θ₀, u0 = params.u0)
     else
-        β = ComponentVector{Float64}(θ = θ)
+        β = ComponentVector{Float64}(θ = θ₀)
     end
 
     ### Callback
@@ -51,7 +50,7 @@ function train(
         throw("[SphereUDE] Method not implemented.")
         # f_loss(β) = loss_multiple_shooting
     else
-        f_loss(β) = loss(β, data, params, U, st)
+        f_loss(β) = loss(β, data, params, regressor)
     end
 
     """
@@ -66,12 +65,12 @@ function train(
             return false
         end
         # Define the loss function with just empirical component
-        f_loss_empirical(β) = loss_empirical(β, data, params, U, st)
+        f_loss_empirical(β) = loss_empirical(β, data, params, regressor)
         if isa(params.sensealg, AbstractAdjointMethod)
             # Custom adjoint methods (e.g. SphereBackSolveAdjoint) cannot be differentiated
             # by Zygote — use the custom gradient for pretraining as well
             loss_grad_pretrain!(_dβ, _β, _p) =
-                rotation_grad!(_dβ, _β, data, params, U, st, params.sensealg)
+                rotation_grad!(_dβ, _β, data, params, regressor, params.sensealg)
             optf₀ = Optimization.OptimizationFunction(
                 (x, β) -> f_loss_empirical(x),
                 grad = loss_grad_pretrain!,
@@ -109,7 +108,7 @@ function train(
 
         # Closure functions to deliver data loader
         loss_function(_β, _p) = (first ∘ f_loss)(_β)
-        loss_grad!(_dβ, _β, _p) = rotation_grad!(_dβ, _β, data, params, U, st, params.sensealg)
+        loss_grad!(_dβ, _β, _p) = rotation_grad!(_dβ, _β, data, params, regressor, params.sensealg)
 
         optf = Optimization.OptimizationFunction(
             loss_function,
@@ -170,8 +169,8 @@ function train(
 
     # Final Fit
     fit_times = collect(range(params.tmin, params.tmax, length = 1000))
-    fit_directions = predict(β_trained, params, fit_times, U, st)
-    fit_rotations = reduce(hcat, (t -> predict_L(t, U, β_trained.θ, st)).(fit_times))
+    fit_directions = predict(β_trained, params, fit_times, regressor)
+    fit_rotations = reduce(hcat, (t -> predict_L(t, regressor, β_trained.θ)).(fit_times))
 
     # Recover final balance between different terms involved in the loss function to assess hyperparameter selection.
     _, loss_dict = f_loss(β_trained)
@@ -190,8 +189,7 @@ function train(
         params = params,
         θ = θ_trained,
         u0 = u0_trained,
-        U = U,
-        st = st,
+        regressor = regressor,
         fit_times = fit_times,
         fit_directions = fit_directions,
         fit_rotations = fit_rotations,
