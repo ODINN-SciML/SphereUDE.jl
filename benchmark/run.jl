@@ -1,5 +1,5 @@
 import Pkg
-Pkg.activate(dirname(Base.current_project()))
+Pkg.activate(@__DIR__)
 
 using SphereUDE
 using BenchmarkTools
@@ -231,48 +231,90 @@ else  # :heavy
 
 end  # benchmark_mode
 
-println("Benchmarking in a total of $(length(params_benchmark)) combinations.")
+### Regressors to benchmark
+# Match parameter counts for a fair comparison.
+_nn_regressor, _nn_θ = NNRegressor(U, rng)
+n_nn_params = length(_nn_θ)
+# SplineRegressor has 3 × n_basis parameters (x, y, z control points).
+n_basis_fair = 50
+println("NN parameters: $n_nn_params  →  SplineRegressor n_basis = $n_basis_fair ($(3*n_basis_fair) params)")
 
-benchmark_data = []
-header = ["Sensitivity", "Reg", "Solver", "Tol", "out-of-place", "Time [s]", "Time/epoch [s]", "Alloc", "Memory [MB]"]
+# Each entry: (label, builder) where builder(params, rng) → AbstractRegressor
+regressor_builders = [
+    ("NNRegressor ($n_nn_params params)",         (params, rng) -> NNRegressor(U, rng)[1]),
+    ("SplineRegressor ($(3*n_basis_fair) params)", (params, rng) -> SplineRegressor(
+        tmin    = Float64(params.tmin),
+        tmax    = Float64(params.tmax),
+        n_basis = n_basis_fair,
+        degree  = 3,
+        ωmax    = Float64(params.ωmax),
+    )),
+]
+
+println("Benchmarking $(length(params_benchmark)) sensealg combinations × $(length(regressor_builders)) regressors = $(length(params_benchmark) * length(regressor_builders)) total runs.")
+
+# benchmark_results[(sensealg_key, reg_label)] = (time_s, time_per_epoch_s, memory_mb)
+benchmark_results = Dict()
 
 short_name(x) = split(string(typeof(x)), "{")[begin]
+combo_key(params) = "$(short_name(params.sensealg)) | $(short_name(params.solver)) | oop=$(params.out_of_place)"
 
+global combo_id = 0
 for (i, params) in enumerate(params_benchmark)
-    try
-        if (typeof(params.sensealg) <: SciMLBase.AbstractAdjointSensitivityAlgorithm) & params.out_of_place
-            continue
+    if (typeof(params.sensealg) <: SciMLBase.AbstractAdjointSensitivityAlgorithm) & params.out_of_place
+        continue
+    end
+    global combo_id += 1
+    key = combo_key(params)
+    n_epochs = params.niter_ADAM + params.niter_LBFGS
+
+    for (reg_label, reg_builder) in regressor_builders
+        try
+            println("[$combo_id] $(short_name(params.sensealg)) | $reg_label | tol=$(params.reltol) | epochs=$n_epochs")
+            _fixed_regressor = reg_builder(params, Xoshiro(666))
+            trial = @benchmark train(data, $params, _rng, nothing, $_fixed_regressor) setup=(_rng = Xoshiro(666))
+            t_s   = mean(trial.times) / 1e9
+            t_ep  = t_s / n_epochs
+            mem   = trial.memory / 1e6
+            benchmark_results[(key, reg_label)] = (t_s, t_ep, mem)
+        catch _err
+            @warn "Simulation with $reg_label + $(params) did not work." exception=_err
+            benchmark_results[(key, reg_label)] = (NaN, NaN, NaN)
         end
-        println("[$i/$(length(params_benchmark))] $(short_name(params.sensealg)) | tol=$(params.reltol) | out-of-place=$(params.out_of_place) | epochs=$(params.niter_ADAM)+$(params.niter_LBFGS)")
-        # TODO: using a fresh RNG per sample is a workaround to avoid NaNs from bad NN
-        # initializations on subsequent @benchmark samples. A permanent fix would be to
-        # make the NN initialization robust to the random seed (e.g. by normalizing weights).
-        trial = @benchmark train(data, $params, _rng, nothing, $U) setup=(_rng = Xoshiro(666))
-        n_epochs = params.niter_ADAM + params.niter_LBFGS
-        push!(benchmark_data, [i, "$(params.sensealg)", "$(params.reg)", "$(params.solver)", "$(params.reltol)", "$(params.out_of_place)", mean(trial.times) / 1e9, mean(trial.times) / 1e9 / n_epochs * 1000, trial.allocs, trial.memory / 1e6])
-    catch _err
-        @warn "Simulation with $(params) did not work." exception=_err
     end
 end
 
-trunc20(s) = length(s) > 20 ? s[1:20] * "…" : s
+# Build side-by-side table: one row per sensealg combo, columns per regressor
+trunc25(s) = length(s) > 25 ? s[1:25] * "…" : s
 
-# Sort by total time (column 7)
-sorted_data = sort(benchmark_data, by = r -> r[7])
+reg_labels = first.(regressor_builders)
+all_keys   = unique([combo_key(p) for p in params_benchmark
+                     if !(typeof(p.sensealg) <: SciMLBase.AbstractAdjointSensitivityAlgorithm && p.out_of_place)])
+
+# Sort rows by mean time across regressors
+all_keys = sort(all_keys, by = k -> mean(
+    get(benchmark_results, (k, rl), (NaN,))[1]
+    for rl in reg_labels
+    if haskey(benchmark_results, (k, rl))
+))
+
+time_cols   = [[@sprintf("%.2f", get(benchmark_results, (k, rl), (NaN,NaN,NaN))[2] * 1000) for k in all_keys] for rl in reg_labels]
+mem_cols    = [[@sprintf("%.1f", get(benchmark_results, (k, rl), (NaN,NaN,NaN))[3]) for k in all_keys] for rl in reg_labels]
 
 table_data = hcat(
-    getindex.(sorted_data, 1),                                    # ID
-    trunc20.(getindex.(sorted_data, 2)),                          # Sensitivity
-    trunc20.(getindex.(sorted_data, 4)),                          # Solver
-    string.(getindex.(sorted_data, 6)),                           # Out-of-place
-    [@sprintf("%.2f", r[7]) for r in sorted_data],               # Time [s]
-    [@sprintf("%.2f", r[8]) for r in sorted_data],               # Time/1000 epochs [s]
-    [@sprintf("%.2f", r[10]) for r in sorted_data],              # Memory [MB]
+    trunc25.(all_keys),
+    time_cols[1], mem_cols[1],
+    time_cols[2], mem_cols[2],
 )
+
+nn_label     = reg_labels[1]
+spline_label = reg_labels[2]
 
 pretty_table(
     table_data;
-    column_labels = ["ID", "Sensitivity", "Solver", "OOP", "Time [s]", "Time/1000 epochs [s]", "Memory [MB]"],
+    column_labels = ["Sensitivity | Solver | OOP",
+                     "Time/1000ep [s] ($nn_label)", "Mem [MB]",
+                     "Time/1000ep [s] ($spline_label)", "Mem [MB]"],
     show_column_labels = true,
     style = TextTableStyle(first_line_column_label = crayon"yellow bold"),
 )
