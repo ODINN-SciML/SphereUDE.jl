@@ -1,3 +1,48 @@
+"""
+Test that the analytical gradient of `regularization` w.r.t. θ (via the rrule)
+matches a finite-difference estimate, for both order=0 and order=1.
+"""
+function test_spline_regularization_gradient(thres = 1e-4)
+
+    rng = Random.default_rng()
+    Random.seed!(rng, 42)
+
+    tmin, tmax = 0.0, 10.0
+    ωmax = 0.1
+
+    params = SphereParameters(
+        tmin = tmin,
+        tmax = tmax,
+        reg  = nothing,
+        u0   = [0.0, 0.0, -1.0],
+        ωmax = ωmax,
+    )
+
+    regressor = get_default_splines(params, rng)
+    θ         = init_params(regressor, rng)
+
+    for (order, power, label) in [
+            (0, 2.0, "order=0 power=2"),
+            (1, 2.0, "order=1 power=2"),
+            (1, 1.0, "order=1 power=1 (L1)"),
+        ]
+
+        reg = Regularization(order = order, power = power, λ = 1.0, diff_mode = nothing)
+
+        # Analytical gradient via rrule
+        _, pb   = ChainRulesCore.rrule(SphereUDE.regularization, θ, regressor, reg, params)
+        grad_analytical = pb(1.0)[2]
+
+        # Finite-difference gradient
+        loss_fn(θ_) = SphereUDE.regularization(θ_, regressor, reg, params)
+        grad_fd = FiniteDifferences.grad(FiniteDifferences.central_fdm(5, 1), loss_fn, θ)[1]
+
+        @info "Spline reg gradient | $label | max err = $(maximum(abs.(grad_analytical .- grad_fd)))"
+        @test isapprox(collect(grad_analytical), collect(grad_fd), rtol = thres)
+    end
+end
+
+
 function test_quadrature(thres = 1e-4)
 
     rng = Random.default_rng()

@@ -14,7 +14,7 @@ function test_single_rotation(;
     repeat_times = false,
     use_regularization = true,
     sensealg = sensealg,
-    regressor = nothing,
+    regressor_builder = nothing,   # (params, rng) → AbstractRegressor, or nothing for default NN
 )
 
     # Total time simulation
@@ -78,6 +78,7 @@ function test_single_rotation(;
         sensealg = sensealg,
     )
 
+    regressor = isnothing(regressor_builder) ? nothing : regressor_builder(params, rng)
     regressor_type = isnothing(regressor) ? "default NNRegressor" : typeof(regressor)
     @info "Testing inversion | regressor=$regressor_type | sensealg=$(typeof(sensealg)) | regularization=$use_regularization | repeat_times=$repeat_times"
     results = train(data, params, rng, nothing, regressor)

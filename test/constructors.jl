@@ -2,8 +2,9 @@
 function make_test_regressors(params, rng)
     # List of (regressor, θ₀) pairs to test against the AbstractRegressor interface.
     # Add new regressors here as they are implemented.
-    nn = get_default_NN(params, rng, nothing)
-    return [NNRegressor(nn, rng)]
+    nn     = get_default_NN(params, rng, nothing)
+    spline = get_default_splines(params, rng)
+    return [NNRegressor(nn, rng), (spline, init_params(spline, rng))]
 end
 
 function test_regressor_interface()
@@ -12,10 +13,12 @@ function test_regressor_interface()
     Random.seed!(rng, 42)
 
     params = SphereParameters(
-        tmin = 0.0, tmax = 10.0,
+        tmin = 0.0,
+        tmax = 10.0,
         u0 = [0.0, 0.0, 1.0],
         ωmax = 0.1,
-        niter_ADAM = 0, niter_LBFGS = 0,
+        niter_ADAM = 0,
+        niter_LBFGS = 0,
     )
 
     t_test = 5.0

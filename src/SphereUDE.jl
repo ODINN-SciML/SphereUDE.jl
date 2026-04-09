@@ -7,6 +7,7 @@ using LinearAlgebra, Statistics, Distributions
 using FastGaussQuadrature
 using Lux, Zygote, DiffEqFlux
 using ChainRules: @ignore_derivatives
+import ChainRulesCore
 using OrdinaryDiffEqCore, OrdinaryDiffEqTsit5
 using SciMLSensitivity, ForwardDiff
 using Optimization, OptimizationOptimisers, OptimizationOptimJL, LineSearches
@@ -29,6 +30,8 @@ include("Data/data_utils.jl")
 # Regressor interface — must come before DiffEq which depends on AbstractRegressor
 include("Training/ML/Regressor.jl")
 include("Training/ML/NN_utils.jl")
+include("Training/ML/NNRegressor.jl")
+include("Training/ML/SplineRegressor.jl")
 
 # Differential Equation support
 include("DiffEq/forward.jl")

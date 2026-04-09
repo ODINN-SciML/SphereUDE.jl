@@ -5,6 +5,7 @@ using Test
 using Lux
 using FiniteDifferences
 using Printf
+import ChainRulesCore
 
 import Random
 Random.seed!(666)
@@ -44,6 +45,10 @@ const FAST_TESTS = get(ENV, "SPHERE_FAST_TESTS", "false") == "true"
         test_quadrature()
     end
 
+    @testset "SplineRegressor regularization gradient (rrule vs FD)" begin
+        test_spline_regularization_gradient()
+    end
+
     @testset "Custom Adjoint method" test_grad_finite_diff(
         SphereBackSolveAdjoint(
             reltol = 1e-12,
@@ -54,7 +59,6 @@ const FAST_TESTS = get(ENV, "SPHERE_FAST_TESTS", "false") == "true"
 
     @testset "Inversion" begin
         if FAST_TESTS
-            # One SciML sensealg with regularization, one custom adjoint without
             @testset "SciMLSensitivity (with regularization)" test_single_rotation(
                 sensealg = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
             )
@@ -95,6 +99,29 @@ const FAST_TESTS = get(ENV, "SPHERE_FAST_TESTS", "false") == "true"
                 sensealg = QuadratureAdjoint(autojacvec = ReverseDiffVJP(true)),
             )
         end
+    end
+
+    @testset "Inversion with SplineRegressor" begin
+        @testset "SciMLSensitivity (without regularization)" test_single_rotation(
+            sensealg           = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
+            use_regularization = false,
+            regressor_builder  = (params, rng) -> get_default_splines(params, rng),
+        )
+        @testset "SciMLSensitivity (with regularization)" test_single_rotation(
+            sensealg           = InterpolatingAdjoint(autojacvec = ReverseDiffVJP(true)),
+            use_regularization = true,
+            regressor_builder  = (params, rng) -> get_default_splines(params, rng),
+        )
+        @testset "Custom Backsolve (without regularization)" test_single_rotation(
+            sensealg           = SphereBackSolveAdjoint(),
+            use_regularization = false,
+            regressor_builder  = (params, rng) -> get_default_splines(params, rng),
+        )
+        @testset "Custom Backsolve (with regularization)" test_single_rotation(
+            sensealg           = SphereBackSolveAdjoint(),
+            use_regularization = true,
+            regressor_builder  = (params, rng) -> get_default_splines(params, rng),
+        )
     end
 
 end

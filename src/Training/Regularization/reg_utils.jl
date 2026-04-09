@@ -1,18 +1,21 @@
 export regularization
 export isL1reg
 
+# Adapt each regressor to the smodel([t]) calling convention used throughout
+_make_smodel(regressor::NNRegressor,        θ) = StatefulLuxLayer{true}(regressor.model, θ, regressor.st)
+_make_smodel(regressor::AbstractRegressor,  θ) = t_vec -> regressor(only(t_vec), θ)
+
 """
 Regularization
 """
 function regularization(
     θ::ComponentVector,
-    regressor::NNRegressor,
+    regressor::AbstractRegressor,
     reg::Regularization,
     params::AP,
 ) where {AP<:AbstractParameters}
 
-    # Define Statefull Lux NN
-    smodel = StatefulLuxLayer{true}(regressor.model, θ, regressor.st)
+    smodel = _make_smodel(regressor, θ)
 
     # Define number of elements for quadrature
     nodes, weights = extract_nodes_weights(params.tmin, params.tmax, params.quadrature)
@@ -31,6 +34,11 @@ function regularization(
     elseif reg.order == 1
 
         if typeof(reg.diff_mode) <: LuxNestedAD
+
+            regressor isa NNRegressor || throw(ArgumentError(
+                "LuxNestedAD regularization requires a NNRegressor (uses batched_jacobian on a Lux model). " *
+                "Use FiniteDiff or ComplexStepDifferentiation instead."
+            ))
 
             if reg.diff_mode.method == "ForwardDiff"
                 # This is giving now the wrong results!!!
@@ -108,6 +116,94 @@ function regularization(
     end
 
     return reg.λ * l_
+end
+
+
+"""
+Exact regularization for SplineRegressor.
+Always uses the analytical B-spline time derivative — `diff_mode` is ignored.
+"""
+function regularization(
+    θ::ComponentVector,
+    regressor::SplineRegressor,
+    reg::Regularization,
+    params::AP,
+) where {AP<:AbstractParameters}
+
+    if reg.order == 0
+
+        return reg.λ * numerical_integral(
+            t -> norm(regressor(t, θ))^reg.power,
+            params.tmin, params.tmax, params.quadrature,
+        )
+
+    elseif reg.order == 1
+
+        return reg.λ * numerical_integral(
+            t -> norm(time_derivative(regressor, t, θ))^reg.power,
+            params.tmin, params.tmax, params.quadrature,
+        )
+
+    else
+        throw("Regularization order not implemented for SplineRegressor.")
+    end
+end
+
+
+"""
+Custom rrule for regularization with SplineRegressor.
+
+Provides an exact, AD-free gradient ∂loss/∂θ using the analytical VJP helpers
+`_vjp_L` (order=0) and `_vjp_dLdt` (order=1), avoiding any AD trace through
+the B-spline recursion.
+"""
+function ChainRulesCore.rrule(
+    ::typeof(regularization),
+    θ::ComponentVector,
+    regressor::SplineRegressor,
+    reg::Regularization,
+    params::AP,
+) where {AP<:AbstractParameters}
+
+    val = regularization(θ, regressor, reg, params)
+
+    function pullback(Δ)
+        nodes, weights = extract_nodes_weights(params.tmin, params.tmax, params.quadrature)
+        n_q = length(nodes)
+        p   = reg.power
+
+        grad_θ = if reg.order == 0
+
+            mapreduce(+, 1:n_q) do j
+                v  = regressor(nodes[j], θ)
+                nv = norm(v)
+                w  = nv < 1e-30 ? zero(nv) : weights[j] * p * nv^(p - 2)
+                w .* _vjp_L(regressor, nodes[j], θ, v)
+            end
+
+        elseif reg.order == 1
+
+            mapreduce(+, 1:n_q) do j
+                v  = time_derivative(regressor, nodes[j], θ)
+                nv = norm(v)
+                w  = nv < 1e-30 ? zero(nv) : weights[j] * p * nv^(p - 2)
+                w .* _vjp_dLdt(regressor, nodes[j], θ, v)
+            end
+
+        else
+            throw("Regularization order not implemented for SplineRegressor.")
+        end
+
+        return (
+            ChainRulesCore.NoTangent(),
+            reg.λ * Δ .* grad_θ,
+            ChainRulesCore.NoTangent(),
+            ChainRulesCore.NoTangent(),
+            ChainRulesCore.NoTangent(),
+        )
+    end
+
+    return val, pullback
 end
 
 

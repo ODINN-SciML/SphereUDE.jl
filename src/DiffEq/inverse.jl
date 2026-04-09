@@ -114,6 +114,18 @@ function rotation_grad!(
 
     dLdθ_cv = Vector2ComponentVector(dLdθ, β.θ)
     dβ.θ .= dLdθ_cv
+
+    # Add regularization gradient (missing from the adjoint ODE above).
+    # Zygote is used here: for SplineRegressor it automatically invokes the
+    # analytical rrule; for NNRegressor it traces normally.
+    if !isnothing(params.reg)
+        for reg in params.reg
+            if typeof(reg) <: Regularization
+                grad_reg, = Zygote.gradient(θ -> regularization(θ, regressor, reg, params), β.θ)
+                dβ.θ .+= grad_reg
+            end
+        end
+    end
 end
 
 ### Utils
