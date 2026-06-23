@@ -85,6 +85,6 @@ function test_single_rotation(;
 
     @test true
     if !(typeof(sensealg) <: SphereUDE.DummyAdjoint)
-        @test results.losses[end] < 0.60 * results.losses[begin]
+        @test results.losses[end] < 0.50 * results.losses[begin]
     end
 end
