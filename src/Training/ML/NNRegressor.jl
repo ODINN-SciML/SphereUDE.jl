@@ -38,3 +38,23 @@ end
 Forward evaluation: predict L(t) given parameters θ.
 """
 (r::NNRegressor)(t::Real, θ) = StatefulLuxLayer{true}(r.model, θ, r.st)([t])
+
+"""
+    adam_optimizer(r::NNRegressor, learning_rate) → Optimisers.Adam
+"""
+function adam_optimizer(r::NNRegressor, learning_rate::Real)
+    return Optimisers.Adam(learning_rate, (0.9, 0.999))
+end
+
+"""
+    lbfgs_optimizer(r::NNRegressor) → Optim.LBFGS
+
+Uses a small static initial step (alpha=0.01), empirically tuned for this
+regressor's parameter/gradient scale.
+"""
+function lbfgs_optimizer(r::NNRegressor)
+    return Optim.LBFGS(;
+        alphaguess = LineSearches.InitialStatic(alpha = 0.01),
+        linesearch = LineSearches.HagerZhang(),
+    )
+end

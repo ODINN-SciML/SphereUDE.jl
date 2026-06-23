@@ -17,6 +17,7 @@ struct SphereParameters{F<:AbstractFloat,I<:Int,ADJ<:AbstractAdjointMethod,Q<:Ab
     niter_ADAM::I
     ADAM_learning_rate::F
     niter_LBFGS::I
+    stop_tol::F
     reltol::F
     abstol::F
     quadrature::Q
@@ -43,6 +44,7 @@ function SphereParameters(;
     niter_ADAM::I = 2000,
     ADAM_learning_rate::F = 0.001,
     niter_LBFGS::I = 2000,
+    stop_tol::F = 1e-5,
     reltol::F = 1e-6,
     abstol::F = 1e-6,
     quadrature::Union{Q,I} = 100,
@@ -84,7 +86,7 @@ function SphereParameters(;
 
     params = SphereParameters{ft,it,gt,qt}(
         tmin, tmax, u0, ωmax, reg, train_initial_condition, multiple_shooting, weighted,
-        niter_ADAM, ADAM_learning_rate, niter_LBFGS,
+        niter_ADAM, ADAM_learning_rate, niter_LBFGS, stop_tol,
         reltol, abstol, quadrature, solver, adtype, sensealg, out_of_place,
         pretrain, hyperparameter_balance,
         verbose, verbose_step

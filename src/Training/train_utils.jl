@@ -79,16 +79,18 @@ function callback_print(p, l, params, losses, f_loss)
 end
 
 """
-    callback_stop_condition(p, l, losses)
+    callback_stop_condition(p, l, losses, tol)
 
-Callback to determine stoping condition of optimization algorithm.
+Callback to determine stoping condition of optimization algorithm. `tol` is
+the relative tolerance (`params.stop_tol`) below which the loss is considered
+to have plateaued.
 """
-function callback_stop_condition(p, l, losses)
+function callback_stop_condition(p, l, losses, tol)
     n_window = 30
     if (length(losses) > n_window) & (length(losses) % 10 == 0)
         losses_last = losses[end-n_window+1:end]
-        if (std(losses_last) / mean(losses_last) < 1e-7) &
-           (abs(losses[end] - losses[end-1]) < 1e-7 * losses[end-1])
+        if (std(losses_last) / mean(losses_last) < tol) &
+           (abs(losses[end] - losses[end-1]) < tol * losses[end-1])
             println("Optimization converged in $(length(losses)) epochs.")
             return true
         else

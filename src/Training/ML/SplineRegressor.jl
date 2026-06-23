@@ -126,6 +126,30 @@ function init_params(r::SplineRegressor, rng)
 end
 
 """
+    adam_optimizer(r::SplineRegressor, learning_rate) → Optimisers.Adam
+"""
+function adam_optimizer(r::SplineRegressor, learning_rate::Real)
+    return Optimisers.Adam(learning_rate, (0.9, 0.999))
+end
+
+"""
+    lbfgs_optimizer(r::SplineRegressor) → Optim.LBFGS
+
+Uses a unit static initial step (alpha=1.0), the textbook choice for LBFGS:
+its search direction is already curvature-scaled by the inverse-Hessian
+approximation, so a unit step is expected to be a good initial guess for the
+line search. The control-point gradient scale made the NN's alpha=0.01 a poor
+fit here — it forced the line search to backtrack/extrapolate on every
+iteration, which is why LBFGS appeared to make no progress.
+"""
+function lbfgs_optimizer(r::SplineRegressor)
+    return Optim.LBFGS(;
+        alphaguess = LineSearches.InitialStatic(alpha = 1.0),
+        linesearch = LineSearches.HagerZhang(),
+    )
+end
+
+"""
     jacobian_params(r::SplineRegressor, t, θ) → Matrix{Float64}  (3 × 3n)
 
 Analytical Jacobian of L(t,θ) with respect to the parameter vector θ.

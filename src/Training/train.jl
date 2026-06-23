@@ -83,7 +83,7 @@ function _train_once(
     losses = Float64[]
     callback_print_closure(p, l) = callback_print(p, l, params, losses, f_loss)
     callback_proj_closure(p, l) = callback_proj(p, l, params)
-    callback_stop_condition_closure(p, l) = callback_stop_condition(p, l, losses)
+    callback_stop_condition_closure(p, l) = callback_stop_condition(p, l, losses, params.stop_tol)
     callback(p, l) = CallbackOptimizationSet(
         p,
         l;
@@ -136,7 +136,7 @@ function _train_once(
         end
         res₀ = Optimization.solve(
             optprob₀,
-            Optimisers.Adam(params.ADAM_learning_rate, (0.0, 0.999)),
+            adam_optimizer(regressor, params.ADAM_learning_rate),
             callback = callback_pretrain,
             maxiters = n_pretrain,
             verbose = false,
@@ -169,11 +169,10 @@ function _train_once(
     # Create dummy data loader
     train_loader = DataLoader([666.0], batchsize = 1, shuffle = false)
     optprob = Optimization.OptimizationProblem(optf, β, train_loader)
-    # optprob = Optimization.OptimizationProblem(optf, β)
 
     res1 = Optimization.solve(
         optprob,
-        Optimisers.Adam(params.ADAM_learning_rate, (0.9, 0.999)),
+        adam_optimizer(regressor, params.ADAM_learning_rate),
         callback = callback,
         maxiters = params.niter_ADAM,
         verbose = true,
@@ -185,13 +184,11 @@ function _train_once(
         optprob2 = Optimization.OptimizationProblem(optf, res1.u)
         res2 = Optimization.solve(
             optprob2,
-            Optim.LBFGS(;
-                alphaguess = LineSearches.InitialStatic(alpha = 0.01),
-                linesearch = LineSearches.HagerZhang(),
-            ),
+            lbfgs_optimizer(regressor),
             callback = callback,
             maxiters = params.niter_LBFGS,
             successive_f_tol = 10,
+            f_reltol = params.stop_tol,
             g_abstol = 1e-6,
         )
     else
