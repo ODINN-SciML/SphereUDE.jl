@@ -1,11 +1,60 @@
 export train
 
 """
-    train()
+    train(data, params, rng, θ_trained, regressor; n_runs)
 
-Training function.
+Training function. When `n_runs > 1`, runs the full optimization `n_runs` times
+(each one drawing a fresh random initialization from `rng`) and returns the
+`Results` with the lowest final training loss.
 """
 function train(
+    data::AD,
+    params::AP,
+    rng,
+    θ_trained = [],
+    regressor::Union{AbstractRegressor,Nothing} = nothing;
+    n_runs::Int = 1,
+) where {AD<:AbstractData,AP<:AbstractParameters}
+
+    multistart = n_runs > 1
+    # Silence per-run training prints (pretraining, ADAM/LBFGS progress, loss
+    # breakdown) when doing a multistart search — we report a summary instead.
+    run_params = multistart ? _replace_field(params, :verbose, false) : params
+
+    best_results = nothing
+    best_loss = Inf
+
+    for run = 1:n_runs
+        results = _train_once(data, run_params, rng, θ_trained, regressor)
+        final_loss = sum(values(results.losses_dict))
+        if params.verbose && multistart
+            @info "[train] Run $(run)/$(n_runs) — final loss: $(final_loss)"
+        end
+        if final_loss < best_loss
+            best_loss = final_loss
+            best_results = results
+        end
+    end
+
+    if multistart
+        # Restore the user-supplied params (with the original verbose setting)
+        # on the winning result, and print its loss breakdown as usual.
+        best_results = _replace_field(best_results, :params, params)
+        if params.verbose
+            @info "[train] Best of $(n_runs) runs — final loss: $(best_loss)"
+            _print_loss_breakdown(best_results.losses_dict, length(best_results.losses))
+        end
+    end
+
+    return best_results
+end
+
+"""
+    _train_once()
+
+Runs a single optimization (ADAM + optional LBFGS) from a fresh random initialization.
+"""
+function _train_once(
     data::AD,
     params::AP,
     rng,
@@ -57,7 +106,7 @@ function train(
     Pretraining to find parameters without impossing regularization
     """
     if params.pretrain
-        @info "Pretraining without regularization for initialization."
+        params.verbose && @info "Pretraining without regularization for initialization."
         losses_pretrain = Float64[]
         n_pretrain = 300
         callback_pretrain = function (p, l)
@@ -92,11 +141,11 @@ function train(
             maxiters = n_pretrain,
             verbose = false,
         )
-        println("Improvement due to pretrain: $(losses_pretrain[begin]) --> $(losses_pretrain[end])")
+        params.verbose && println("Improvement due to pretrain: $(losses_pretrain[begin]) --> $(losses_pretrain[end])")
         β = res₀.u
     end
 
-    @info "Start optimization with ADAM"
+    params.verbose && @info "Start optimization with ADAM"
     # if params.customgrad
     if isa(params.sensealg, SciMLBase.AbstractAdjointSensitivityAlgorithm)
         optf = Optimization.OptimizationFunction(
@@ -104,7 +153,7 @@ function train(
             params.adtype
             )
     elseif isa(params.sensealg, AbstractAdjointMethod)
-        @info "Training with custom gradient method."
+        params.verbose && @info "Training with custom gradient method."
 
         # Closure functions to deliver data loader
         loss_function(_β, _p) = (first ∘ f_loss)(_β)
@@ -124,7 +173,7 @@ function train(
 
     res1 = Optimization.solve(
         optprob,
-        Optimisers.Adam(params.ADAM_learning_rate, (0.0, 0.999)),
+        Optimisers.Adam(params.ADAM_learning_rate, (0.9, 0.999)),
         callback = callback,
         maxiters = params.niter_ADAM,
         verbose = true,
@@ -132,7 +181,7 @@ function train(
     # @info "Training loss after $(length(losses)) iterations: $(losses[end])"
 
     if params.niter_LBFGS > 0
-        @info "Start optimization with LBFGS"
+        params.verbose && @info "Start optimization with LBFGS"
         optprob2 = Optimization.OptimizationProblem(optf, res1.u)
         res2 = Optimization.solve(
             optprob2,
@@ -175,14 +224,7 @@ function train(
     # Recover final balance between different terms involved in the loss function to assess hyperparameter selection.
     _, loss_dict = f_loss(β_trained)
     if params.verbose
-        total_loss = sum(values(loss_dict))
-        println("Final training loss after $(length(losses)) iterations: $(total_loss)")
-        sorted_keys = sort(collect(keys(loss_dict)))
-        pretty_table(
-            hcat(sorted_keys, [loss_dict[k] for k in sorted_keys]);
-            column_labels = ["Loss term", "Value"],
-            style = TextTableStyle(first_line_column_label = crayon"yellow bold"),
-        )
+        _print_loss_breakdown(loss_dict, length(losses))
     end
 
     return Results(

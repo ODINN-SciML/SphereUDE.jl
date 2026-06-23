@@ -1,5 +1,30 @@
 export CallbackOptimizationSet, callback_print
 
+"""
+    _replace_field(obj, field, value)
+
+Returns a copy of `obj` with `field` set to `value`, leaving all other fields
+unchanged. Relies on the default positional constructor of `typeof(obj)`.
+"""
+function _replace_field(obj::T, field::Symbol, value) where {T}
+    return T((f === field ? value : getfield(obj, f) for f in fieldnames(T))...)
+end
+
+"""
+    _print_loss_breakdown(loss_dict, n_iters)
+
+Prints the final total loss and its breakdown by term.
+"""
+function _print_loss_breakdown(loss_dict, n_iters)
+    total_loss = sum(values(loss_dict))
+    println("Final training loss after $(n_iters) iterations: $(total_loss)")
+    sorted_keys = sort(collect(keys(loss_dict)))
+    pretty_table(
+        hcat(sorted_keys, [loss_dict[k] for k in sorted_keys]);
+        column_labels = ["Loss term", "Value"],
+        style = TextTableStyle(first_line_column_label = crayon"yellow bold"),
+    )
+end
 
 """
     CallbackOptimizationSet(θ, l; callbacks)
@@ -59,8 +84,8 @@ end
 Callback to determine stoping condition of optimization algorithm.
 """
 function callback_stop_condition(p, l, losses)
-    n_window = 100
-    if (length(losses) > n_window) & (length(losses) % 100 == 0)
+    n_window = 30
+    if (length(losses) > n_window) & (length(losses) % 10 == 0)
         losses_last = losses[end-n_window+1:end]
         if (std(losses_last) / mean(losses_last) < 1e-7) &
            (abs(losses[end] - losses[end-1]) < 1e-7 * losses[end-1])
