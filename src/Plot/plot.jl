@@ -129,7 +129,7 @@ function plot_L(
     title::String,
 )
     times_smooth = collect(LinRange(results.fit_times[begin], results.fit_times[end], 1000))
-    Ls = reduce(hcat, (t -> results.U([t], results.θ, results.st)[1]).(times_smooth))
+    Ls = reduce(hcat, (t -> results.regressor(t, results.θ)).(times_smooth))
     angular_velocity = mapslices(x -> norm(x), Ls, dims = 1)[1, :]
 
     p = plot(
