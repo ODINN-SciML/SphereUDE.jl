@@ -1,7 +1,7 @@
 name = "SphereUDE"
 uuid = "d7416ba7-148a-4110-b27d-9087fcebab2d"
-authors = ["Facundo Sapienza <fsapienza@berkeley.edu>", "Jordi Bolibar <jordi.bolibar@gmail.com>"]
 version = "0.3.1"
+authors = ["Facundo Sapienza <fsapienza@berkeley.edu>", "Jordi Bolibar <jordi.bolibar@gmail.com>"]
 
 [deps]
 ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"
@@ -74,6 +74,7 @@ SciMLBase = "2"
 SciMLSensitivity = "7"
 SimpleDiffEq = "1"
 StaticArrays = "1"
+Statistics = "1"
 Zygote = "0.7"
 julia = "1.10"
 
