@@ -1,7 +1,7 @@
 name = "SphereUDE"
 uuid = "d7416ba7-148a-4110-b27d-9087fcebab2d"
-authors = ["Facundo Sapienza <fsapienza@berkeley.edu>", "Jordi Bolibar <jordi.bolibar@gmail.com>"]
 version = "0.3.1"
+authors = ["Facundo Sapienza <fsapienza@berkeley.edu>", "Jordi Bolibar <jordi.bolibar@gmail.com>"]
 
 [deps]
 ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"
@@ -56,7 +56,7 @@ Infiltrator = "1"
 LineSearches = "7"
 Lux = "1"
 MLUtils = "0.4"
-Mooncake = "0.4"
+Mooncake = "0.4, 0.5"
 ODE = "2"
 Optimisers = "0.4"
 Optimization = "5"
