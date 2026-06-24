@@ -3,32 +3,32 @@ export ude_rotation!
 export callback_proj
 
 """
-    function predict_L(t, NN, θ, st)
+    predict_L(t, regressor, θ)
 
-Function to predict angular momentum. Used just for ODE part 
-of the loss function
+Predict angular velocity L at time t using the regressor and parameters θ.
 """
-function predict_L(t, NN, θ, st)
-    smodel = StatefulLuxLayer{true}(NN, θ, st)
-    return smodel([t])
+function predict_L(t, regressor::AbstractRegressor, θ)
+    return regressor(t, θ)
 end
 
 """
-    function ude_rotation!(du, u, p, t)
+    ude_rotation!(du, u, p, t, regressor)
 
-Sphere-constrained ODE
+Sphere-constrained ODE (in-place).
 """
-function ude_rotation!(du, u, p, t, U, st)
-    # Angular momentum given by network prediction
-    L = predict_L(t, U, p, st)
+function ude_rotation!(du, u, p, t, regressor::AbstractRegressor)
+    L = predict_L(t, regressor, p)
     du .= cross(L, u)
 end
 
-function ude_rotation(u, p, t, U, st)
-    # Angular momentum given by network prediction
-    L = predict_L(t, U, p, st)
-    du = cross(L, u)
-    return SVector{3,Float64}(du)
+"""
+    ude_rotation(u, p, t, regressor)
+
+Sphere-constrained ODE (out-of-place).
+"""
+function ude_rotation(u, p, t, regressor::AbstractRegressor)
+    L = predict_L(t, regressor, p)
+    return SVector{3,Float64}(cross(L, u))
 end
 
 """

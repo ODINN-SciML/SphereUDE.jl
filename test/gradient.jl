@@ -55,13 +55,14 @@ function test_grad_finite_diff(
         verbose = false
     )
 
+    @info "Testing gradient | sensealg=$(typeof(sensealg))"
     U = get_default_NN(params, rng, nothing)
-    θ, st = Lux.setup(rng, U)
-    β = SphereUDE.ComponentVector{Float64}(θ = θ)
+    regressor, θ₀ = NNRegressor(U, rng)
+    β = SphereUDE.ComponentVector{Float64}(θ = θ₀)
 
-    f_loss(β) = loss(β, data, params, U, st)
+    f_loss(β) = loss(β, data, params, regressor)
     loss_function(_β) = (first ∘ f_loss)(_β)
-    loss_grad!(_dβ, _β) = SphereUDE.rotation_grad!(_dβ, _β, data, params, U, st, params.sensealg)
+    loss_grad!(_dβ, _β) = SphereUDE.rotation_grad!(_dβ, _β, data, params, regressor, params.sensealg)
 
     dβ = zero(β)
     loss_grad!(dβ, β)

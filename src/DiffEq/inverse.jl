@@ -9,15 +9,14 @@ function rotation_grad!(
     β::ComponentVector,
     data::AD,
     params::AP,
-    U::Chain,
-    st::NamedTuple,
+    regressor::AbstractRegressor,
     sensealg::SphereBackSolveAdjoint,
     ) where {AD<:AbstractData, AP<:AbstractParameters}
 
     # Compute final solution of forward model
-    t₀, t₁ = params.tmin, params.tmax
+    t₁ = params.tmax
 
-    _u = predict(β, params, [t₁], U, st)
+    _u = predict(β, params, [t₁], regressor)
     if !(_u isa AbstractArray) || !all(isfinite, _u)
         @error "[SphereUDE] Forward solve failed (non-finite solution) — cannot compute backsolve adjoint gradient. Returning zero gradient. Try a different random seed or smaller ωmax."
         dβ .= 0
@@ -30,7 +29,7 @@ function rotation_grad!(
 
     # Definition of callback to introduce contrubution of loss function
     t_inverse = .-reverse(data.times)
-    stop_condition(U, t, integrator) = t ∈ t_inverse
+    stop_condition(_, t, integrator) = t ∈ t_inverse
     function effect!(integrator)
         idxs = findall(t -> -t == integrator.t, data.times)
         if isnothing(data.kappas)
@@ -56,7 +55,7 @@ function rotation_grad!(
 
         v₁ = SVector{6,Float64}(v₁)
 
-        rotation_adjoint(v, p, τ) = rotation_reverse(v, p, τ, U, st)
+        rotation_adjoint(v, p, τ) = rotation_reverse(v, p, τ, regressor)
 
         rotation_adjoint_rev = ODEProblem{false}(
             rotation_adjoint,
@@ -67,7 +66,7 @@ function rotation_grad!(
 
     else
 
-        rotation_adjoint!(dv, v, p, τ) = rotation_reverse!(dv, v, p, τ, U, st)
+        rotation_adjoint!(dv, v, p, τ) = rotation_reverse!(dv, v, p, τ, regressor)
 
         rotation_adjoint_rev = ODEProblem{true}(
             rotation_adjoint!,
@@ -105,10 +104,7 @@ function rotation_grad!(
     for i in 1:n_quadrature
         t = nodes[i]
         τ = -t
-        ∇θ, = Zygote.jacobian(
-            _θ -> StatefulLuxLayer{true}(U, _θ, st)([t]),
-            β.θ
-        )
+        ∇θ = jacobian_params(regressor, t, β.θ)
         dLdθ .+= weights[i] * mapslices(
             x -> dot(sol_adjoint(τ)[4:6], cross(x, sol_adjoint(τ)[1:3])),
             ∇θ;
@@ -118,23 +114,38 @@ function rotation_grad!(
 
     dLdθ_cv = Vector2ComponentVector(dLdθ, β.θ)
     dβ.θ .= dLdθ_cv
+
+    # Add regularization gradient (missing from the adjoint ODE above).
+    # Zygote is used here: for SplineRegressor it automatically invokes the
+    # analytical rrule; for NNRegressor it traces normally.
+    if !isnothing(params.reg)
+        for reg in params.reg
+            if typeof(reg) <: Regularization
+                grad_reg, = Zygote.gradient(θ -> regularization(θ, regressor, reg, params), β.θ)
+                dβ.θ .+= grad_reg
+            end
+        end
+    end
 end
 
 ### Utils
 
 """
-Dynamics for backpropagating adjoint
+Dynamics for backpropagating adjoint (in-place)
 """
-function rotation_reverse!(dv, v, p, τ, U, st)
+function rotation_reverse!(dv, v, p, τ, regressor::AbstractRegressor)
     t = -τ
-    L = predict_L(t, U, p, st)
+    L = predict_L(t, regressor, p)
     dv[1:3] .= cross(-L, v[1:3])
     dv[4:6] .= cross(-L, v[4:6])
 end
 
-function rotation_reverse(v, p, τ, U, st)
+"""
+Dynamics for backpropagating adjoint (out-of-place)
+"""
+function rotation_reverse(v, p, τ, regressor::AbstractRegressor)
     t = -τ
-    L = predict_L(t, U, p, st)
+    L = predict_L(t, regressor, p)
     return SVector{6,Float64}([cross(-L, v[1:3]); cross(-L, v[4:6])])
 end
 
@@ -147,8 +158,7 @@ function rotation_grad!(
     β::ComponentVector,
     data::AD,
     params::AP,
-    U::Chain,
-    st::NamedTuple,
+    regressor::AbstractRegressor,
     sensealg::SphereUDE.DummyAdjoint
     ) where {AD<:AbstractData,AP<:AbstractParameters}
 

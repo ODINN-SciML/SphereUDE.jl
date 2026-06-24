@@ -9,14 +9,13 @@ function loss(
     β::ComponentVector,
     data::AD,
     params::AP,
-    U::Chain,
-    st::NamedTuple,
+    regressor::AbstractRegressor,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Record the value of each individual loss to the total loss function for hyperparameter selection.
     loss_dict = Dict()
 
-    l_emp = loss_empirical(β, data, params, U, st)
+    l_emp = loss_empirical(β, data, params, regressor)
 
     loss_dict["Empirical"] = l_emp
 
@@ -30,10 +29,10 @@ function loss(
     if !isnothing(params.reg)
         for reg in params.reg
             if typeof(reg) <: Regularization
-                reg₀ = regularization(β.θ, U, st, reg, params)
+                reg₀ = regularization(β.θ, regressor, reg, params)
                 loss_dict["Regularization (order=$(reg.order), power=$(reg.power))"] = reg₀
             elseif typeof(reg) <: CubicSplinesRegularization
-                reg₀ = cubic_regularization(β, U, st, reg, params)
+                reg₀ = cubic_regularization(β, regressor, reg, params)
                 loss_dict["Regularization with cubic splines"] = reg₀
             else
                 throw("Regularization not implemented.")
@@ -56,18 +55,17 @@ function loss_empirical(
     β::ComponentVector,
     data::AD,
     params::AP,
-    U::Chain,
-    st::NamedTuple,
+    regressor::AbstractRegressor,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     # Predict trajectory on times associated to dataset
     if data.repeat_times
         times = data.times_unique
-        u_unique = predict(β, params, times, U, st)
+        u_unique = predict(β, params, times, regressor)
         u_ = u_unique[:, data.times_unique_inverse]
     else
         times = data.times
-        u_ = predict(β, params, times, U, st)
+        u_ = predict(β, params, times, regressor)
     end
 
     if params.weighted
@@ -107,13 +105,12 @@ function predict(
     β::ComponentVector,
     params::AP,
     T::Vector,
-    U::Chain,
-    st::NamedTuple
+    regressor::AbstractRegressor,
     ) where {AP<:AbstractParameters}
 
     # Closure of the ODE update for solve
     if params.out_of_place
-        ude_rotation_closure(u, p, t) = ude_rotation(u, p, t, U, st)
+        ude_rotation_closure(u, p, t) = ude_rotation(u, p, t, regressor)
         prob_nn = ODEProblem(
             ude_rotation_closure,
             params.u0,
@@ -121,7 +118,7 @@ function predict(
             β.θ
             )
     else
-        ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, U, st)
+        ude_rotation_closure!(du, u, p, t) = ude_rotation!(du, u, p, t, regressor)
         prob_nn = ODEProblem(
             ude_rotation_closure!,
             params.u0,

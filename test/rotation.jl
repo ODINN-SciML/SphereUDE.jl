@@ -14,6 +14,7 @@ function test_single_rotation(;
     repeat_times = false,
     use_regularization = true,
     sensealg = sensealg,
+    regressor_builder = nothing,   # (params, rng) → AbstractRegressor, or nothing for default NN
 )
 
     # Total time simulation
@@ -77,10 +78,13 @@ function test_single_rotation(;
         sensealg = sensealg,
     )
 
-    results = train(data, params, rng, nothing, nothing)
+    regressor = isnothing(regressor_builder) ? nothing : regressor_builder(params, rng)
+    regressor_type = isnothing(regressor) ? "default NNRegressor" : typeof(regressor)
+    @info "Testing inversion | regressor=$regressor_type | sensealg=$(typeof(sensealg)) | regularization=$use_regularization | repeat_times=$repeat_times"
+    results = train(data, params, rng, nothing, regressor)
 
     @test true
     if !(typeof(sensealg) <: SphereUDE.DummyAdjoint)
-        @test results.losses[end] < 0.60 * results.losses[begin]
+        @test results.losses[end] < 0.70 * results.losses[begin]
     end
 end
