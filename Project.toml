@@ -1,7 +1,7 @@
 name = "SphereUDE"
 uuid = "d7416ba7-148a-4110-b27d-9087fcebab2d"
 authors = ["Facundo Sapienza <fsapienza@berkeley.edu>", "Jordi Bolibar <jordi.bolibar@gmail.com>"]
-version = "0.3.0"
+version = "0.3.1"
 
 [deps]
 ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"
