@@ -13,3 +13,15 @@ function convert2dict(data::SphereData, results::Results)
 
     return _dict
 end
+
+function convert2dict(data::SphereData, cv::CVResult)
+    _dict = Dict()
+    _dict["λ_grid"] = cv.λ_grid
+    _dict["scores"] = cv.scores
+    _dict["best_λ"] = cv.best_λ
+    if !isnothing(cv.best_results)
+        _dict["best_results"] = convert2dict(data, cv.best_results)
+    end
+
+    return _dict
+end

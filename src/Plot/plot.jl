@@ -1,4 +1,4 @@
-export plot_sphere, plot_L
+export plot_sphere, plot_L, plot_cv
 
 """
 Build an orthographic projection function centred at
@@ -260,6 +260,43 @@ function plot_L(
         angular_velocity_true = mapslices(x -> norm(x), Ls_true, dims = 1)[1, :]
         plot!(p, times_smooth, angular_velocity_true; label = "Reference")
     end
+
+    if !isnothing(saveas)
+        savefig(p, saveas)
+    end
+
+    return p
+end
+
+
+"""
+Plot the per-fold validation scores of a [`CVResult`](@ref) (see
+[`train_cv`](@ref)) as a function of λ, with λ on a log-scaled x-axis: each
+candidate λ's `k_folds` scores are scattered, with the mean and median score
+overlaid as lines, and the selected `best_λ` marked with a vertical line.
+"""
+function plot_cv(
+    cv::CVResult;
+    saveas::Union{String,Nothing} = nothing,
+    title::String = "Cross-validation",
+)
+    λs = cv.λ_grid
+
+    xs = vcat([fill(λs[k], length(cv.scores[k])) for k in eachindex(λs)]...)
+    ys = vcat(cv.scores...)
+
+    p = plot(
+        xscale = :log10,
+        xlabel = "λ",
+        ylabel = "Validation loss",
+        title = title,
+        legend = :topright,
+    )
+
+    scatter!(p, xs, ys; color = :gray60, markersize = 4, markerstrokewidth = 0, alpha = 0.5, label = "Per-fold score")
+    plot!(p, λs, mean.(cv.scores); color = :blue, linewidth = 2, marker = :circle, label = "Mean")
+    plot!(p, λs, median.(cv.scores); color = :red, linewidth = 2, marker = :diamond, label = "Median")
+    vline!(p, [cv.best_λ]; color = :black, linestyle = :dash, label = "Best λ")
 
     if !isnothing(saveas)
         savefig(p, saveas)

@@ -16,6 +16,7 @@ using Optimisers
 using ComponentArrays
 using Plots
 using PrettyTables, Printf
+using ProgressMeter
 using SciMLBase: NoAD
 using DiffEqBase: AbstractDEAlgorithm
 using MLUtils: DataLoader
@@ -59,6 +60,9 @@ include("Results/result_utils.jl")
 
 # Uncertainty quantification
 include("Training/Sampling/bootstrap.jl")
+
+# Cross-validation
+include("Training/Validation/crossvalidation.jl")
 
 # Plotting
 include("Plot/plot.jl")

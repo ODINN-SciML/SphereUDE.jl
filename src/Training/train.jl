@@ -1,13 +1,17 @@
 export train
 
 """
-    train(data, params, rng, θ_trained, regressor; n_runs, parallel)
+    train(data, params, rng, θ_trained, regressor; n_runs, parallel, verbose)
 
 Training function. When `n_runs > 1`, runs the full optimization `n_runs` times
 (each one drawing a fresh, independent random initialization seeded off `rng`)
 and returns the `Results` with the lowest final training loss. When
-`n_runs == 1`, `parallel` has no effect and `rng` is used directly (unchanged
-behavior).
+`n_runs == 1`, `parallel` and `verbose` have no effect and `rng`/`params` are
+used directly (unchanged behavior) — `params.verbose` alone controls printing.
+
+When `n_runs > 1`, per-run output (pretraining, ADAM/LBFGS progress, loss
+breakdown) is muted by default and a single summary is printed instead. Pass
+`verbose = true` to see every run's full output.
 
 When `parallel = true` and `n_runs > 1`, the runs are distributed across
 `Threads.nthreads()` threads via `Threads.@threads`. Results are identical
@@ -25,6 +29,7 @@ function train(
     regressor::Union{AbstractRegressor,Nothing} = nothing;
     n_runs::Int = 1,
     parallel::Bool = false,
+    verbose = true,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     multistart = n_runs > 1
@@ -34,7 +39,12 @@ function train(
 
     # Silence per-run training prints (pretraining, ADAM/LBFGS progress, loss
     # breakdown) when doing a multistart search — we report a summary instead.
-    run_params = _replace_field(params, :verbose, false)
+    # Pass verbose = true to see every run's full output instead.
+    run_params = if verbose
+        params
+    else
+        _replace_field(params, :verbose, false)
+    end
 
     all_results = Vector{Results}(undef, n_runs)
     all_losses = Vector{Float64}(undef, n_runs)
