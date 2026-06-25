@@ -92,7 +92,7 @@ end
 Tool to avoid repetition of times in the forward/reverse ODE calculation
 """
 function MakeVectorUnique(v::Vector)
-    @assert v == sort(v)
+    @assert v == sort(v) "[SphereUDE] MakeVectorUnique requires `v` to be sorted."
     vector_unique = [v[1]]
     inverse_unique = Int64[1]
     counter = 1

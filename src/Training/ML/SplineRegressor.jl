@@ -116,7 +116,7 @@ The factor 0.1 ensures that ‖x(t,θ)‖ ≪ ωmax initially, placing the netwo
 in the approximately-linear regime of `scale_norm` where training starts easily.
 """
 function init_params(r::SplineRegressor, rng)
-    σ = 0.1 * r.ωmax
+    σ = 0.3 * r.ωmax
     n = r.n_basis
     return ComponentVector{Float64}(
         x = σ .* randn(rng, n),

@@ -12,7 +12,9 @@ Random.seed!(666)
 
 include("constructors.jl")
 include("data.jl")
+include("losses.jl")
 include("bootstrap.jl")
+include("crossvalidation.jl")
 include("utils.jl")
 include("rotation.jl")
 include("gradient.jl")
@@ -37,10 +39,19 @@ const FAST_TESTS = get(ENV, "SPHERE_FAST_TESTS", "false") == "true"
         test_resample_data()
     end
 
+    @testset "Losses" begin
+        test_loss_empirical_kappa_weighting()
+    end
+
     @testset "Uncertainty quantification" begin
         test_sample_uq()
         test_train_multistart_parallel()
         test_plot_sphere_ensemble()
+    end
+
+    @testset "Cross-validation" begin
+        test_cv_splits()
+        test_train_cv()
     end
 
     if !FAST_TESTS
