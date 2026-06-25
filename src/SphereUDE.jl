@@ -4,6 +4,7 @@ module SphereUDE
 # utils
 # training
 using LinearAlgebra, Statistics, Distributions
+using Random
 using FastGaussQuadrature
 using Lux, Zygote, DiffEqFlux
 using ChainRules: @ignore_derivatives
@@ -55,6 +56,9 @@ include("Training/train_utils.jl")
 # Results
 include("Results/Results.jl")
 include("Results/result_utils.jl")
+
+# Uncertainty quantification
+include("Training/Sampling/bootstrap.jl")
 
 # Plotting
 include("Plot/plot.jl")

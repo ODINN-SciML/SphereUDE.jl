@@ -1,25 +1,17 @@
 export plot_sphere, plot_L
 
 """
-Plot data points and the fitted path on a globe using an orthographic projection,
-matching the visual style of Cartopy's globe view.
-`central_latitude` and `central_longitude` control the viewing centre.
+Build an orthographic projection function centred at
+(`central_latitude`, `central_longitude`). Returns `(lat_deg, lon_deg) ->
+(x, y, cos_c)`, where `cos_c > 0` means the point is on the visible
+hemisphere.
 """
-function plot_sphere(
-    data::AbstractData,
-    results::AbstractResult,
-    central_latitude::Union{Float64,Nothing} = nothing,
-    central_longitude::Union{Float64,Nothing} = nothing;
-    saveas::Union{String,Nothing} = nothing,
-    title::String = "",
-)
+function _make_ortho(central_latitude::Union{Float64,Nothing}, central_longitude::Union{Float64,Nothing})
     lat_c = isnothing(central_latitude) ? 0.0 : central_latitude
     lon_c = isnothing(central_longitude) ? 0.0 : central_longitude
     φ_c = deg2rad(lat_c)
     λ_c = deg2rad(lon_c)
-
-    # Orthographic projection: returns (x, y, cos_c) where cos_c > 0 means visible
-    function ortho(lat_deg, lon_deg)
+    return (lat_deg, lon_deg) -> begin
         φ = deg2rad(lat_deg)
         λ = deg2rad(lon_deg)
         cos_c = sin(φ_c) * sin(φ) + cos(φ_c) * cos(φ) * cos(λ - λ_c)
@@ -27,34 +19,15 @@ function plot_sphere(
         y = cos(φ_c) * sin(φ) - sin(φ_c) * cos(φ) * cos(λ - λ_c)
         return x, y, cos_c
     end
+end
 
-    # Convert Cartesian directions to lat/lon
-    X_sph = cart2sph(data.directions; radians = false)
-    lats_d = X_sph[1, :]
-    lons_d = X_sph[2, :]
-
-    X_fit_sph = cart2sph(results.fit_directions; radians = false)
-    lats_f = X_fit_sph[1, :]
-    lons_f = X_fit_sph[2, :]
-
-    # Project data points
-    proj_d   = [ortho(lats_d[i], lons_d[i]) for i in eachindex(lats_d)]
-    xd       = [q[1] for q in proj_d]
-    yd       = [q[2] for q in proj_d]
-    visible_d = [q[3] > 0 for q in proj_d]
-
-    # Project fit path — set invisible segments to NaN to break the line
-    proj_f = [ortho(lats_f[i], lons_f[i]) for i in eachindex(lats_f)]
-    xf     = Float64[q[1] for q in proj_f]
-    yf     = Float64[q[2] for q in proj_f]
-    vf     = [q[3] > 0 for q in proj_f]
-    xf[.!vf] .= NaN
-    yf[.!vf] .= NaN
-
-    # --- Build the plot ---
+"""
+Draw the globe background and graticule (lines of latitude/longitude every
+30°) under the given orthographic projection `ortho`.
+"""
+function _plot_globe(ortho; title::String = "")
     θs = range(0, 2π; length = 361)
 
-    # Globe background (filled circle)
     globe_shape = Shape(cos.(θs), sin.(θs))
     p = plot(
         globe_shape;
@@ -71,7 +44,6 @@ function plot_sphere(
         size           = (600, 600),
     )
 
-    # Graticule lines every 30°
     for lat in -60:30:60
         lons = range(-180, 180; length = 361)
         qs = [ortho(lat, lon) for lon in lons]
@@ -90,7 +62,23 @@ function plot_sphere(
         plot!(p, x_, y_; color = :gray60, linewidth = 0.4, label = "")
     end
 
-    # Data points (only visible hemisphere)
+    return p
+end
+
+"""
+Scatter the (visible hemisphere of the) data points of `data` onto `p`,
+colored by age.
+"""
+function _plot_data_points!(p, data::AbstractData, ortho)
+    X_sph = cart2sph(data.directions; radians = false)
+    lats_d = X_sph[1, :]
+    lons_d = X_sph[2, :]
+
+    proj_d    = [ortho(lats_d[i], lons_d[i]) for i in eachindex(lats_d)]
+    xd        = [q[1] for q in proj_d]
+    yd        = [q[2] for q in proj_d]
+    visible_d = [q[3] > 0 for q in proj_d]
+
     vis_idx = findall(visible_d)
     if !isempty(vis_idx)
         scatter!(p, xd[vis_idx], yd[vis_idx];
@@ -104,12 +92,138 @@ function plot_sphere(
             colorbar_title    = "Age (Ma)",
         )
     end
+    return p
+end
 
-    # Fit path — plotted after points so it sits on top
-    plot!(p, xf, yf; color = :black, linewidth = 3.5, label = "Estimated APWP",
-        legend = :topleft)
+"""
+Scatter the resampled directions of `datasets` onto `p` as a faint cloud
+around each original observation, giving a visual sense of the noise model
+each point was resampled from.
+"""
+function _plot_resampled_points!(p, datasets::AbstractVector{<:AbstractData}, ortho)
+    for (i, ds) in enumerate(datasets)
+        X_sph = cart2sph(ds.directions; radians = false)
+        lats = X_sph[1, :]
+        lons = X_sph[2, :]
+
+        proj    = [ortho(lats[j], lons[j]) for j in eachindex(lats)]
+        x_      = [q[1] for q in proj]
+        y_      = [q[2] for q in proj]
+        vis_idx = findall(q -> q[3] > 0, proj)
+
+        isempty(vis_idx) && continue
+        scatter!(p, x_[vis_idx], y_[vis_idx];
+            color             = :gray50,
+            markersize        = 2,
+            markerstrokewidth = 0,
+            alpha             = 0.2,
+            label             = i == 1 ? "Resampled points" : "",
+        )
+    end
+    return p
+end
+
+"""
+Plot the fitted path of `results` onto `p` (invisible-hemisphere segments are
+broken with `NaN`).
+"""
+function _plot_fit_path!(
+    p,
+    results::Results,
+    ortho;
+    color = :black,
+    linewidth = 3.5,
+    alpha = 1.0,
+    label = "Estimated APWP",
+)
+    X_fit_sph = cart2sph(results.fit_directions; radians = false)
+    lats_f = X_fit_sph[1, :]
+    lons_f = X_fit_sph[2, :]
+
+    proj_f = [ortho(lats_f[i], lons_f[i]) for i in eachindex(lats_f)]
+    xf     = Float64[q[1] for q in proj_f]
+    yf     = Float64[q[2] for q in proj_f]
+    vf     = [q[3] > 0 for q in proj_f]
+    xf[.!vf] .= NaN
+    yf[.!vf] .= NaN
+
+    plot!(p, xf, yf; color = color, linewidth = linewidth, alpha = alpha, label = label)
+    return p
+end
+
+"""
+Plot data points and the fitted path on a globe using an orthographic projection,
+matching the visual style of Cartopy's globe view.
+`central_latitude` and `central_longitude` control the viewing centre.
+"""
+function plot_sphere(
+    data::AbstractData,
+    results::Results,
+    central_latitude::Union{Float64,Nothing} = nothing,
+    central_longitude::Union{Float64,Nothing} = nothing;
+    saveas::Union{String,Nothing} = nothing,
+    title::String = "",
+)
+    ortho = _make_ortho(central_latitude, central_longitude)
+
+    p = _plot_globe(ortho; title = title)
+    _plot_data_points!(p, data, ortho)
+    _plot_fit_path!(p, results, ortho)
+    plot!(p; legend = :topleft)
 
     # Redraw globe boundary on top so it clips cleanly
+    θs = range(0, 2π; length = 361)
+    plot!(p, cos.(θs), sin.(θs); color = :black, linewidth = 1.5, label = "")
+
+    if !isnothing(saveas)
+        savefig(p, saveas)
+    end
+    return p
+end
+
+"""
+Plot every trajectory in an `EnsambleResult` overlaid on a globe, e.g. to
+visualize the spread of resampled fits used for uncertainty quantification
+(see [`sample_uq`](@ref)). Pass `main_result` (e.g. the original, non-resampled
+fit) to additionally highlight a single reference trajectory on top of the
+ensemble. The resampled directions in `ensemble.datasets` are shown as a
+faint cloud around each original observation unless
+`show_resampled_points = false`.
+"""
+function plot_sphere(
+    data::AbstractData,
+    ensemble::EnsambleResult,
+    central_latitude::Union{Float64,Nothing} = nothing,
+    central_longitude::Union{Float64,Nothing} = nothing;
+    main_result::Union{Results,Nothing} = nothing,
+    show_resampled_points::Bool = true,
+    saveas::Union{String,Nothing} = nothing,
+    title::String = "",
+)
+    ortho = _make_ortho(central_latitude, central_longitude)
+
+    p = _plot_globe(ortho; title = title)
+    if show_resampled_points
+        _plot_resampled_points!(p, ensemble.datasets, ortho)
+    end
+    _plot_data_points!(p, data, ortho)
+
+    for (i, result_i) in enumerate(ensemble.results)
+        _plot_fit_path!(p, result_i, ortho;
+            color     = :steelblue,
+            linewidth = 1.0,
+            alpha     = 0.35,
+            label     = i == 1 ? "UQ samples" : "",
+        )
+    end
+
+    if !isnothing(main_result)
+        _plot_fit_path!(p, main_result, ortho)
+    end
+    plot!(p; legend = :topleft)
+
+    # Redraw globe boundary on top so it clips cleanly
+    θs = range(0, 2π; length = 361)
     plot!(p, cos.(θs), sin.(θs); color = :black, linewidth = 1.5, label = "")
 
     if !isnothing(saveas)
