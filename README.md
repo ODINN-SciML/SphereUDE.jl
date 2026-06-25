@@ -122,6 +122,16 @@ Passing `n_runs > 1` repeats the full training `n_runs` times from independent r
 results = train(data, params, rng, nothing, regressor, n_runs = 5)
 ```
 
+#### Multithreading
+
+When `n_runs > 1`, passing `parallel = true` distributes the `n_runs` runs across `Threads.nthreads()` threads instead of running them one after another:
+```julia
+results = train(data, params, rng, nothing, regressor, n_runs = 5, parallel = true)
+```
+This only helps if Julia itself was started with more than one thread, e.g. `julia --project --threads=auto`; otherwise `train` runs sequentially and prints a warning. Results are identical regardless of `parallel`, since each run draws from its own independently seeded RNG stream.
+
+The same `parallel` option is available on `sample_uq` (see [Uncertainty quantification](#uncertainty-quantification) below), to distribute the resampled fits used for uncertainty quantification across threads. Don't enable `parallel` on both at once for the same call — `sample_uq` always runs its inner `train` calls with `parallel = false` to avoid oversubscribing your threads with two nested layers of parallelism.
+
 We can finally save and plot the data: 
 ```julia 
 results_dict = convert2dict(data, results)
@@ -130,6 +140,19 @@ JLD2.@save "./results_dict.jld2" results_dict
 
 plot_sphere(data, results, -30., 0., saveas="plot.png", title="Results")
 plot_L(data, results, saveas="plot_L.png", title="Results")
+```
+
+### Uncertainty quantification
+
+`sample_uq` gives bootstrap-style uncertainty quantification: it resamples the directions `n_samples` times from the Von Mises-Fisher noise model implied by `kappas`, retrains the model on each resample (warm-started from the already trained `results.θ`), and returns an `EnsambleResult` wrapping one `Results` and the resampled dataset per sample:
+```julia
+uq_results = sample_uq(data, params, rng, results.θ, regressor; n_samples = 20)
+```
+Just like `train`, it accepts `parallel = true` to distribute the resampled fits across `Threads.nthreads()` threads (see [Multithreading](#multithreading) above). Its inner `train` calls always run with `parallel = false` regardless of `n_runs`, so the two layers of parallelism are never nested.
+
+You can overlay the whole ensemble of trajectories, together with the original fit and a cloud of the resampled directions, on a single globe plot:
+```julia
+plot_sphere(data, uq_results, -30., 0.; main_result = results, saveas = "plot_uq.png", title = "Results (UQ)")
 ```
 
 :books: We are working in a more complete documentation. Feel free to reach out in the meantime if you have any questions! 
