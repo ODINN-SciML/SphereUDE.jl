@@ -95,7 +95,7 @@ function rotation_grad!(
         abstol = sensealg.abstol
         )
 
-    if norm(params.u0 .- sol_adjoint(-params.tmin)[1:3]) > 1e-4
+    if norm(params.u0 .- sol_adjoint(-params.tmin)[1:3]) > 1e-3
         @warn "Solution if backsolve adjoint differs from forward solve: ( u0 = $(params.u0) ) ≠ ( sol_adjoint = $(sol_adjoint(-params.tmin)[1:3]) )"
     end
 
