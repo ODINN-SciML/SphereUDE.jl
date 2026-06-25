@@ -58,6 +58,10 @@ function loss_empirical(
     regressor::AbstractRegressor,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
+    # Size of dataset
+    @assert size(data.directions)[1] == 3
+    N = size(data.directions)[2]
+
     # Predict trajectory on times associated to dataset
     if data.repeat_times
         times = data.times_unique
@@ -79,21 +83,21 @@ function loss_empirical(
             method = :Linear
             ) ./ (params.tmax - params.tmin)
     else
-        weights = 1 / (params.tmax - params.tmin)
+        weights = 1 / (N * (params.tmax - params.tmin))
     end
+
+    # Per-point residual (1 - cosθ_i), flattened to a length-N vector. `vec`
+    # is essential here: `sum(..., dims=1)` keeps a (1,N) shape, and
+    # broadcasting that directly against a length-N Vector (e.g. data.kappas
+    # below) would silently compute an N×N outer product instead of pairing
+    # each kappa_i with its own point's residual.
+    residual = vec(1.0 .- sum(u_ .* data.directions, dims = 1))
 
     # Empirical error
     if isnothing(data.kappas)
-        # @ignore_derivatives begin
-        #     # TODO: I should ensure the output is directly norm one and avoid this test here
-        #     @assert isapprox(2.0 * sum(weights .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weights .* abs2.(u_ .- data.directions)), rtol = 1e-3)
-        # end
-        return sum(weights .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
+        return sum(weights .* residual)
     else
-        return sum(weights .* data.kappas .* (1.0 .- sum(u_ .* data.directions, dims = 1)))
-        # @ignore_derivatives begin
-        #     @assert isapprox(2.0 * sum(weights .*  data.kappas .* (1.0 .- sum(u_.* data.directions, dims = 1))), sum(weights .* data.kappas .* abs2.(u_ .- data.directions)), rtol = 1e-3)
-        # end
+        return sum(weights .* data.kappas .* residual)
     end
 
 end
