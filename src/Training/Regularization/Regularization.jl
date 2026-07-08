@@ -1,5 +1,6 @@
 export Regularization, AbstractRegularization
 export CubicSplinesRegularization
+export RegularizationCV
 
 abstract type AbstractRegularization end
 
@@ -49,5 +50,18 @@ end
 
 @kwdef struct CubicSplinesRegularization{F<:AbstractFloat} <: AbstractRegularization
     λ::F
+    diff_mode::Union{Nothing,AbstractDifferentiation} = nothing
+end
+
+"""
+Same as [`Regularization`](@ref), except `λ` is a vector of candidate values
+to cross-validate over instead of a single scalar. Used to mark a
+regularization term whose strength should be selected by cross-validation
+(see `Training/Validation/crossvalidation.jl`) rather than fixed by the caller.
+"""
+@kwdef struct RegularizationCV{F<:AbstractFloat,I<:Int} <: AbstractRegularization
+    order::I        # Order of derivative
+    power::F        # Power of the Euclidean norm
+    λ::Vector{F}    # Candidate regularization hyperparameters to cross-validate over
     diff_mode::Union{Nothing,AbstractDifferentiation} = nothing
 end

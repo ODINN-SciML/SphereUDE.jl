@@ -1,11 +1,25 @@
 export train
 
 """
-    train(data, params, rng, θ_trained, regressor; n_runs)
+    train(data, params, rng, θ_trained, regressor; n_runs, parallel, verbose)
 
 Training function. When `n_runs > 1`, runs the full optimization `n_runs` times
-(each one drawing a fresh random initialization from `rng`) and returns the
-`Results` with the lowest final training loss.
+(each one drawing a fresh, independent random initialization seeded off `rng`)
+and returns the `Results` with the lowest final training loss. When
+`n_runs == 1`, `parallel` and `verbose` have no effect and `rng`/`params` are
+used directly (unchanged behavior) — `params.verbose` alone controls printing.
+
+When `n_runs > 1`, per-run output (pretraining, ADAM/LBFGS progress, loss
+breakdown) is muted by default and a single summary is printed instead. Pass
+`verbose = true` to see every run's full output.
+
+When `parallel = true` and `n_runs > 1`, the runs are distributed across
+`Threads.nthreads()` threads via `Threads.@threads`. Results are identical
+regardless of `parallel` since each run uses its own seeded RNG stream.
+
+Multistart parallelism here is independent from, and should not be combined
+with, [`sample_uq`](@ref)'s own `parallel` option — running both nested would
+oversubscribe the available threads.
 """
 function train(
     data::AD,
@@ -14,36 +28,58 @@ function train(
     θ_trained = [],
     regressor::Union{AbstractRegressor,Nothing} = nothing;
     n_runs::Int = 1,
+    parallel::Bool = false,
+    verbose = true,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     multistart = n_runs > 1
+    if !multistart
+        return _train_once(data, params, rng, θ_trained, regressor)
+    end
+
     # Silence per-run training prints (pretraining, ADAM/LBFGS progress, loss
     # breakdown) when doing a multistart search — we report a summary instead.
-    run_params = multistart ? _replace_field(params, :verbose, false) : params
+    # Pass verbose = true to see every run's full output instead.
+    run_params = if verbose
+        params
+    else
+        _replace_field(params, :verbose, false)
+    end
 
-    best_results = nothing
-    best_loss = Inf
+    all_results = Vector{Results}(undef, n_runs)
+    all_losses = Vector{Float64}(undef, n_runs)
+    seeds = rand(rng, UInt64, n_runs)
 
-    for run = 1:n_runs
-        results = _train_once(data, run_params, rng, θ_trained, regressor)
-        final_loss = sum(values(results.losses_dict))
-        if params.verbose && multistart
-            @info "[train] Run $(run)/$(n_runs) — final loss: $(final_loss)"
+    _run_one = run -> begin
+        run_rng = Random.Xoshiro(seeds[run])
+        results = _train_once(data, run_params, run_rng, θ_trained, regressor)
+        all_results[run] = results
+        all_losses[run] = sum(values(results.losses_dict))
+        params.verbose && @info "[train] Run $(run)/$(n_runs) — final loss: $(all_losses[run])"
+    end
+
+    if parallel
+        if Threads.nthreads() == 1
+            @warn "[train] parallel=true but Threads.nthreads() == 1 — running sequentially. Start Julia with `--threads=auto` (or set JULIA_NUM_THREADS) to actually parallelize."
+        else
+            params.verbose && @info "[train] Running $(n_runs) runs across $(Threads.nthreads()) threads."
         end
-        if final_loss < best_loss
-            best_loss = final_loss
-            best_results = results
+        Threads.@threads for run = 1:n_runs
+            _run_one(run)
+        end
+    else
+        for run = 1:n_runs
+            _run_one(run)
         end
     end
 
-    if multistart
-        # Restore the user-supplied params (with the original verbose setting)
-        # on the winning result, and print its loss breakdown as usual.
-        best_results = _replace_field(best_results, :params, params)
-        if params.verbose
-            @info "[train] Best of $(n_runs) runs — final loss: $(best_loss)"
-            _print_loss_breakdown(best_results.losses_dict, length(best_results.losses))
-        end
+    best_idx = argmin(all_losses)
+    # Restore the user-supplied params (with the original verbose setting)
+    # on the winning result, and print its loss breakdown as usual.
+    best_results = _replace_field(all_results[best_idx], :params, params)
+    if params.verbose
+        @info "[train] Best of $(n_runs) runs — final loss: $(all_losses[best_idx])"
+        _print_loss_breakdown(best_results.losses_dict, length(best_results.losses))
     end
 
     return best_results

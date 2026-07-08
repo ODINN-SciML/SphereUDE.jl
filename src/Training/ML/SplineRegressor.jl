@@ -100,8 +100,10 @@ The final output is passed through `scale_norm` to enforce the ωmax cap:
 This is identical in structure to the NNRegressor output layer.
 """
 function (r::SplineRegressor)(t::Real, θ)
-    b     = _eval_basis(r, t)
-    L_raw = [dot(b, θ.x), dot(b, θ.y), dot(b, θ.z)]
+    i0  = _find_span(r, t)
+    rng = i0:(i0+r.degree)
+    b   = _eval_basis_local(r, t, i0)
+    L_raw = [dot(b, θ.x[rng]), dot(b, θ.y[rng]), dot(b, θ.z[rng])]
     return scale_norm(L_raw; scale = r.ωmax)
 end
 
@@ -116,7 +118,7 @@ The factor 0.1 ensures that ‖x(t,θ)‖ ≪ ωmax initially, placing the netwo
 in the approximately-linear regime of `scale_norm` where training starts easily.
 """
 function init_params(r::SplineRegressor, rng)
-    σ = 0.1 * r.ωmax
+    σ = 0.3 * r.ωmax
     n = r.n_basis
     return ComponentVector{Float64}(
         x = σ .* randn(rng, n),
@@ -175,16 +177,20 @@ where J_sn(x) = ∂scale_norm(x)/∂x ∈ ℝ^{3×3} is computed by
 No automatic differentiation is needed: the B-spline is linear in θ.
 """
 function jacobian_params(r::SplineRegressor, t::Real, θ)
-    b     = _eval_basis(r, t)
-    L_raw = [dot(b, θ.x), dot(b, θ.y), dot(b, θ.z)]
+    i0  = _find_span(r, t)
+    rng = i0:(i0+r.degree)
+    b     = _eval_basis_local(r, t, i0)
+    L_raw = [dot(b, θ.x[rng]), dot(b, θ.y[rng]), dot(b, θ.z[rng])]
     J_sn  = _jacobian_scale_norm(L_raw; scale = r.ωmax)   # 3×3
 
-    # ∂L_raw/∂θ = B_block(t)  (3×3n, block-diagonal)
+    # ∂L_raw/∂θ = B_block(t)  (3×3n, block-diagonal). Only the degree+1
+    # columns in `rng` (per block) are nonzero — everywhere else is zero by
+    # the basis functions' local support, so we only need to fill those.
     n = r.n_basis
     dLraw_dθ = zeros(3, 3n)
-    dLraw_dθ[1,   1: n ] .= b
-    dLraw_dθ[2, n+1:2n ] .= b
-    dLraw_dθ[3, 2n+1:3n] .= b
+    dLraw_dθ[1, rng]        .= b
+    dLraw_dθ[2, n .+ rng]    .= b
+    dLraw_dθ[3, 2n .+ rng]   .= b
 
     return J_sn * dLraw_dθ
 end
@@ -221,17 +227,40 @@ function _make_clamped_knots(tmin, tmax, n_basis, degree)
 end
 
 """
-    _eval_basis(r::SplineRegressor, t) → Vector{Float64}  (length n_basis)
+    _find_span(r::SplineRegressor, t) → Int
 
-Evaluate all n basis functions at t:
+Returns `i0` such that the only basis functions that can be nonzero at `t`
+are `i0, i0+1, …, i0+degree` — a B-spline of degree `p` has local support, so
+at most `p+1` of the `n_basis` basis functions are ever nonzero at a given
+`t`. Evaluating just this window (instead of all `n_basis` functions) turns
+every spline evaluation from `O(n_basis)` into `O(degree)`, independent of
+`n_basis`.
 
-    b(t) = [ B₁ₚ(t), B₂ₚ(t), …, Bₙₚ(t) ]
+## Derivation
 
-Calls `_bspline_basis` for each i = 1, …, n.
+`B_{i,p}(t) ≠ 0` exactly when `knots[i] ≤ t < knots[i+p+1]` (t lies in the
+support interval of basis function `i`). If `m = searchsortedlast(knots, t)`
+(so `knots[m] ≤ t < knots[m+1]`), the indices satisfying both `i ≤ m` and
+`i + p + 1 > m` are exactly `i ∈ {m-p, …, m}` — `p+1` consecutive values, so
+`i0 = m - p`. `clamp` handles the right-boundary case (`t == tmax`, where the
+clamped knot vector's repeated tail pushes `m` past `n_basis`) by falling
+back to the last valid window, matching `_bspline_basis`'s own `at_end`
+convention.
+"""
+function _find_span(r::SplineRegressor, t::Real)
+    m = searchsortedlast(r.knots, t)
+    return clamp(m - r.degree, 1, r.n_basis - r.degree)
+end
+
+"""
+    _eval_basis_local(r::SplineRegressor, t, i0) → Vector{Float64}  (length degree+1)
+
+Evaluate just the `degree+1` nonzero basis functions at `t`, i.e.
+`[B_{i0,p}(t), …, B_{i0+degree,p}(t)]`, where `i0` comes from [`_find_span`](@ref).
 Accepts any Real for t (including AD-traced types such as ReverseDiff.TrackedReal).
 """
-function _eval_basis(r::SplineRegressor, t::Real)
-    return [_bspline_basis(r.knots, r.degree, i, t) for i in 1:r.n_basis]
+function _eval_basis_local(r::SplineRegressor, t::Real, i0::Int)
+    return [_bspline_basis(r.knots, r.degree, i, t) for i in i0:(i0+r.degree)]
 end
 
 """
@@ -293,24 +322,24 @@ where:
 No finite differences are used: both b̊(t) and J_sn(x) are computed analytically.
 """
 function time_derivative(r::SplineRegressor, t::Real, θ)
-    b      = _eval_basis(r, t)
-    b_dot  = _eval_basis_derivative(r, t)
-    L_raw  = [dot(b, θ.x), dot(b, θ.y), dot(b, θ.z)]
-    dLraw  = [dot(b_dot, θ.x), dot(b_dot, θ.y), dot(b_dot, θ.z)]
+    i0     = _find_span(r, t)
+    rng    = i0:(i0+r.degree)
+    b      = _eval_basis_local(r, t, i0)
+    b_dot  = _eval_basis_derivative_local(r, t, i0)
+    L_raw  = [dot(b, θ.x[rng]), dot(b, θ.y[rng]), dot(b, θ.z[rng])]
+    dLraw  = [dot(b_dot, θ.x[rng]), dot(b_dot, θ.y[rng]), dot(b_dot, θ.z[rng])]
     return _jacobian_scale_norm(L_raw; scale = r.ωmax) * dLraw
 end
 
 """
-    _eval_basis_derivative(r::SplineRegressor, t) → Vector{Float64}  (length n_basis)
+    _eval_basis_derivative_local(r::SplineRegressor, t, i0) → Vector{Float64}  (length degree+1)
 
-Evaluate the time derivatives of all n basis functions at t:
-
-    b̊(t) = [ Ḃ₁ₚ(t), Ḃ₂ₚ(t), …, Ḃₙₚ(t) ]
-
-Calls `_bspline_basis_derivative` for each i = 1, …, n.
+Evaluate the time derivatives of just the `degree+1` nonzero basis functions
+at `t`, i.e. `[Ḃ_{i0,p}(t), …, Ḃ_{i0+degree,p}(t)]`, where `i0` comes from
+[`_find_span`](@ref).
 """
-function _eval_basis_derivative(r::SplineRegressor, t::Real)
-    return [_bspline_basis_derivative(r.knots, r.degree, i, t) for i in 1:r.n_basis]
+function _eval_basis_derivative_local(r::SplineRegressor, t::Real, i0::Int)
+    return [_bspline_basis_derivative(r.knots, r.degree, i, t) for i in i0:(i0+r.degree)]
 end
 
 """
@@ -368,10 +397,18 @@ The action of B_block(t)ᵀ on ξ decomposes by component:
 Result has the same ComponentVector structure as θ.
 """
 function _vjp_L(r::SplineRegressor, t::Real, θ, η)
-    b   = _eval_basis(r, t)
-    x   = [dot(b, θ.x), dot(b, θ.y), dot(b, θ.z)]
+    i0  = _find_span(r, t)
+    rng = i0:(i0+r.degree)
+    b   = _eval_basis_local(r, t, i0)
+    x   = [dot(b, θ.x[rng]), dot(b, θ.y[rng]), dot(b, θ.z[rng])]
     ξ   = _jacobian_scale_norm(x; scale = r.ωmax)' * η      # J_snᵀ η  (3-vector)
-    return ComponentVector(x = b .* ξ[1], y = b .* ξ[2], z = b .* ξ[3])
+
+    # Outside `rng`, every basis function is exactly zero, so the gradient
+    # there is exactly zero too — only that window needs to be filled.
+    gx = zeros(r.n_basis); gx[rng] .= b .* ξ[1]
+    gy = zeros(r.n_basis); gy[rng] .= b .* ξ[2]
+    gz = zeros(r.n_basis); gz[rng] .= b .* ξ[3]
+    return ComponentVector(x = gx, y = gy, z = gz)
 end
 
 """
@@ -457,10 +494,12 @@ When r = ‖x‖ < 1e-10, J_sn ≈ I (identity), so β = γ = 0 and only the
     f″(r)  = -2 sech²(r/ωmax) tanh(r/ωmax) / ωmax  = -2f′(r) tanh(r/ωmax) / ωmax
 """
 function _vjp_dLdt(r::SplineRegressor, t::Real, θ, η)
-    b     = _eval_basis(r, t)
-    b_dot = _eval_basis_derivative(r, t)
-    x     = [dot(b,     θ.x), dot(b,     θ.y), dot(b,     θ.z)]   # L_raw
-    y     = [dot(b_dot, θ.x), dot(b_dot, θ.y), dot(b_dot, θ.z)]   # dL_raw/dt
+    i0    = _find_span(r, t)
+    rng   = i0:(i0+r.degree)
+    b     = _eval_basis_local(r, t, i0)
+    b_dot = _eval_basis_derivative_local(r, t, i0)
+    x     = [dot(b,     θ.x[rng]), dot(b,     θ.y[rng]), dot(b,     θ.z[rng])]   # L_raw
+    y     = [dot(b_dot, θ.x[rng]), dot(b_dot, θ.y[rng]), dot(b_dot, θ.z[rng])]   # dL_raw/dt
 
     J_sn  = _jacobian_scale_norm(x; scale = r.ωmax)
     ξ     = J_sn' * η       # 3-vector
@@ -468,7 +507,10 @@ function _vjp_dLdt(r::SplineRegressor, t::Real, θ, η)
     rv = norm(x)
     if rv < 1e-10
         # β = γ = 0: only the Ḃ_block term survives
-        return ComponentVector(x = b_dot .* ξ[1], y = b_dot .* ξ[2], z = b_dot .* ξ[3])
+        gx = zeros(r.n_basis); gx[rng] .= b_dot .* ξ[1]
+        gy = zeros(r.n_basis); gy[rng] .= b_dot .* ξ[2]
+        gz = zeros(r.n_basis); gz[rng] .= b_dot .* ξ[3]
+        return ComponentVector(x = gx, y = gy, z = gz)
     end
 
     sc  = r.ωmax
@@ -486,11 +528,12 @@ function _vjp_dLdt(r::SplineRegressor, t::Real, θ, η)
 
     η_comb = βc .* η .+ p1 .* x .+ p2 .* y
 
-    return ComponentVector(
-        x = b_dot .* ξ[1] .+ b .* η_comb[1],
-        y = b_dot .* ξ[2] .+ b .* η_comb[2],
-        z = b_dot .* ξ[3] .+ b .* η_comb[3],
-    )
+    # Outside `rng`, every basis function is exactly zero, so the gradient
+    # there is exactly zero too — only that window needs to be filled.
+    gx = zeros(r.n_basis); gx[rng] .= b_dot .* ξ[1] .+ b .* η_comb[1]
+    gy = zeros(r.n_basis); gy[rng] .= b_dot .* ξ[2] .+ b .* η_comb[2]
+    gz = zeros(r.n_basis); gz[rng] .= b_dot .* ξ[3] .+ b .* η_comb[3]
+    return ComponentVector(x = gx, y = gy, z = gz)
 end
 
 """

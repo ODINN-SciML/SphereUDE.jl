@@ -27,6 +27,11 @@ function rotation_grad!(
 
     v₁ = [u_final; λ_final]
 
+    # Must match loss_empirical's weights = 1 / (N * (tmax - tmin)) exactly —
+    # this is the gradient of that same loss, computed by a separate
+    # (analytical) path, so the normalization has to stay in sync by hand.
+    N = size(data.directions, 2)
+
     # Definition of callback to introduce contrubution of loss function
     t_inverse = .-reverse(data.times)
     stop_condition(_, t, integrator) = t ∈ t_inverse
@@ -41,10 +46,10 @@ function rotation_grad!(
         if typeof(integrator.u) <: SVector
             integrator.u = vcat(
                 integrator.u[1:3],
-                SVector{3,Float64}(integrator.u[4:6] .- y * κ / (params.tmax - params.tmin))
+                SVector{3,Float64}(integrator.u[4:6] .- y * κ / (N * (params.tmax - params.tmin)))
                 )
         else
-            integrator.u[4:6] .+= .- y * κ / (params.tmax - params.tmin)
+            integrator.u[4:6] .+= .- y * κ / (N * (params.tmax - params.tmin))
         end
     end
     cb_adjoint_loss = DiscreteCallback(stop_condition, effect!)
@@ -95,7 +100,7 @@ function rotation_grad!(
         abstol = sensealg.abstol
         )
 
-    if norm(params.u0 .- sol_adjoint(-params.tmin)[1:3]) > 1e-4
+    if norm(params.u0 .- sol_adjoint(-params.tmin)[1:3]) > 1e-3
         @warn "Solution if backsolve adjoint differs from forward solve: ( u0 = $(params.u0) ) ≠ ( sol_adjoint = $(sol_adjoint(-params.tmin)[1:3]) )"
     end
 

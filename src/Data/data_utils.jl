@@ -3,6 +3,7 @@ export AbstractNoise, FisherNoise
 export fisher_mean
 export MakeVectorUnique
 export raise_warnings
+export resample_data
 
 
 """
@@ -91,7 +92,7 @@ end
 Tool to avoid repetition of times in the forward/reverse ODE calculation
 """
 function MakeVectorUnique(v::Vector)
-    @assert v == sort(v)
+    @assert v == sort(v) "[SphereUDE] MakeVectorUnique requires `v` to be sorted."
     vector_unique = [v[1]]
     inverse_unique = Int64[1]
     counter = 1
@@ -106,6 +107,36 @@ function MakeVectorUnique(v::Vector)
     return vector_unique, inverse_unique
 end
 
+
+"""
+    resample_data(data::SphereData, rng)
+
+Resample the directions of `data`, used for uncertainty quantification. Each
+direction is redrawn from a Von Mises–Fisher distribution centered at the
+original direction with the concentration parameter `kappa` given by
+`data.kappas`, so the resampled dataset reflects the same noise model as the
+original observations. Draws are made using `rng`, so seeding `rng` makes the
+resampling reproducible.
+"""
+function resample_data(data::SphereData, rng)
+
+    @assert !isnothing(data.kappas) "[SphereUDE] Cannot resample data without concentration parameters (kappas)."
+    @assert all(i -> norm(data.directions[:, i]) ≈ 1, axes(data.directions, 2)) "[SphereUDE] Directions must be unit vectors."
+
+    directions_resampled = similar(data.directions)
+
+    for i in axes(data.directions, 2)
+        x = data.directions[:, i]
+        directions_resampled[:, i] = rand(rng, sampler(VonMisesFisher(x, data.kappas[i])))
+    end
+
+    return SphereData(
+        times = data.times,
+        directions = directions_resampled,
+        kappas = data.kappas,
+        L = data.L,
+    )
+end
 
 """
     raise_warnings(data::AD, params::AP)

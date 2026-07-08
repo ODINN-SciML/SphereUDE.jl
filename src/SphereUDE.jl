@@ -4,6 +4,7 @@ module SphereUDE
 # utils
 # training
 using LinearAlgebra, Statistics, Distributions
+using Random
 using FastGaussQuadrature
 using Lux, Zygote, DiffEqFlux
 using ChainRules: @ignore_derivatives
@@ -15,6 +16,7 @@ using Optimisers
 using ComponentArrays
 using Plots
 using PrettyTables, Printf
+using ProgressMeter
 using SciMLBase: NoAD
 using DiffEqBase: AbstractDEAlgorithm
 using MLUtils: DataLoader
@@ -55,6 +57,12 @@ include("Training/train_utils.jl")
 # Results
 include("Results/Results.jl")
 include("Results/result_utils.jl")
+
+# Uncertainty quantification
+include("Training/Sampling/bootstrap.jl")
+
+# Cross-validation
+include("Training/Validation/crossvalidation.jl")
 
 # Plotting
 include("Plot/plot.jl")
