@@ -272,3 +272,32 @@ function _train_once(
         losses_dict = loss_dict
     )
 end
+
+# """
+#     _train_once()
+
+# Used for a Gaussian Process
+# Runs a single optimization (ADAM + optional LBFGS) from a fresh random initialization.
+# """
+# function _train_once(
+#     data::AD,
+#     params::AP,
+#     rng,
+#     θ_trained = [],
+#     regressor::AbstractGaussianProcess,
+# ) where {AD<:AbstractData,AP<:AbstractParameters}
+#     # Some code
+# end
+
+# """
+# Used for running mean
+# """
+# function _train_once(
+#     data::AD,
+#     params::AP,
+#     rng,
+#     θ_trained = [],
+#     regressor::AbstractRunningMean,
+# ) where {AD<:AbstractData,AP<:AbstractParameters}
+#     # Some <10 lines of code
+# end

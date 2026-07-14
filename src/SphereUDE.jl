@@ -34,6 +34,7 @@ include("Training/ML/Regressor.jl")
 include("Training/ML/NN_utils.jl")
 include("Training/ML/NNRegressor.jl")
 include("Training/ML/SplineRegressor.jl")
+include("Training/ML/GPRegressor.jl")
 
 # Differential Equation support
 include("DiffEq/forward.jl")
