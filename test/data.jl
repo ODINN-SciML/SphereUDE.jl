@@ -48,4 +48,27 @@ function test_resample_data()
         # 2) Mean resultant length matches the von Mises-Fisher κ ↔ R̄ relation
         @test isapprox(R̄, A, atol = 0.05)
     end
+
+    # Test resampling of times: each resampled time must fall within
+    # [times_young, times_old] and the sample mean must converge to the midpoint.
+    times_young = Float64[0.0, 10.0, 20.0, 50.0, 100.0]
+    times_old   = Float64[5.0, 15.0, 30.0, 60.0, 110.0]
+    data_times  = SphereData(
+        times_young = times_young,
+        times_old   = times_old,
+        directions  = reduce(hcat, [[0.0, 0.0, 1.0] for _ in eachindex(times_young)]),
+        kappas      = fill(100.0, length(times_young)),
+        L           = nothing,
+    )
+
+    sum_times = zeros(length(times_young))
+    for _ in 1:n_datasets
+        resampled = resample_data(data_times, rng; resample_directions = false)
+        for i in eachindex(resampled.times)
+            @test data_times.times_young[i] <= resampled.times[i] <= data_times.times_old[i]
+        end
+        sum_times .+= resampled.times
+    end
+    midpoints = (times_young .+ times_old) ./ 2
+    @test isapprox(sum_times ./ n_datasets, midpoints, atol = 0.5)
 end

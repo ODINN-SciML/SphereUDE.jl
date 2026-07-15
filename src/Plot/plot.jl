@@ -6,9 +6,17 @@ Build an orthographic projection function centred at
 (x, y, cos_c)`, where `cos_c > 0` means the point is on the visible
 hemisphere.
 """
-function _make_ortho(central_latitude::Union{Float64,Nothing}, central_longitude::Union{Float64,Nothing})
-    lat_c = isnothing(central_latitude) ? 0.0 : central_latitude
-    lon_c = isnothing(central_longitude) ? 0.0 : central_longitude
+function _make_ortho(central_latitude::Union{Float64,Nothing}, central_longitude::Union{Float64,Nothing}, data::Union{AbstractData,Nothing} = nothing)
+    if (isnothing(central_latitude) || isnothing(central_longitude)) && !isnothing(data)
+        mean_dir = mean(data.directions, dims = 2)[:, 1]
+        mean_dir ./= norm(mean_dir)
+        mean_sph = cart2sph(reshape(mean_dir, 3, 1); radians = false)
+        lat_c = isnothing(central_latitude)  ? mean_sph[1, 1] : central_latitude
+        lon_c = isnothing(central_longitude) ? mean_sph[2, 1] : central_longitude
+    else
+        lat_c = isnothing(central_latitude)  ? 0.0 : central_latitude
+        lon_c = isnothing(central_longitude) ? 0.0 : central_longitude
+    end
     φ_c = deg2rad(lat_c)
     λ_c = deg2rad(lon_c)
     return (lat_deg, lon_deg) -> begin
@@ -158,17 +166,20 @@ matching the visual style of Cartopy's globe view.
 """
 function plot_sphere(
     data::AbstractData,
-    results::Results,
+    results::Union{Results,Nothing} = nothing,
     central_latitude::Union{Float64,Nothing} = nothing,
     central_longitude::Union{Float64,Nothing} = nothing;
     saveas::Union{String,Nothing} = nothing,
     title::String = "",
 )
-    ortho = _make_ortho(central_latitude, central_longitude)
+
+    ortho = _make_ortho(central_latitude, central_longitude, data)
 
     p = _plot_globe(ortho; title = title)
     _plot_data_points!(p, data, ortho)
-    _plot_fit_path!(p, results, ortho)
+    if !isnothing(results)
+        _plot_fit_path!(p, results, ortho)
+    end
     plot!(p; legend = :topleft)
 
     # Redraw globe boundary on top so it clips cleanly
@@ -200,7 +211,7 @@ function plot_sphere(
     saveas::Union{String,Nothing} = nothing,
     title::String = "",
 )
-    ortho = _make_ortho(central_latitude, central_longitude)
+    ortho = _make_ortho(central_latitude, central_longitude, data)
 
     p = _plot_globe(ortho; title = title)
     if show_resampled_points

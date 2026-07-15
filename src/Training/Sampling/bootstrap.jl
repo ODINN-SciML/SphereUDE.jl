@@ -24,6 +24,8 @@ function sample_uq(
     regressor::Union{AbstractRegressor,Nothing};
     n_samples::Int = 1,
     n_runs::Int = 1,
+    resample_times = true,
+    resample_directions = true,
     parallel::Bool = false,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
@@ -33,7 +35,12 @@ function sample_uq(
 
     _sample_one = i -> begin
         sample_rng = Random.Xoshiro(seeds[i])
-        data_sample = resample_data(data, sample_rng)
+        data_sample = resample_data(
+            data,
+            sample_rng,
+            resample_times = resample_times,
+            resample_directions = resample_directions
+            )
         datasets[i] = data_sample
         # Multistart inside train() must stay sequential: sample_uq already
         # parallelizes across samples, and nesting Threads.@threads would

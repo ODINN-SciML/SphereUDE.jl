@@ -118,20 +118,39 @@ original direction with the concentration parameter `kappa` given by
 original observations. Draws are made using `rng`, so seeding `rng` makes the
 resampling reproducible.
 """
-function resample_data(data::SphereData, rng)
+function resample_data(
+    data::SphereData,
+    rng;
+    resample_times = true,
+    resample_directions = true
+    )
 
     @assert !isnothing(data.kappas) "[SphereUDE] Cannot resample data without concentration parameters (kappas)."
     @assert all(i -> norm(data.directions[:, i]) ≈ 1, axes(data.directions, 2)) "[SphereUDE] Directions must be unit vectors."
 
-    directions_resampled = similar(data.directions)
+    # Resampling of times
+    if resample_times
+        @assert !isnothing(data.times_young) && !isnothing(data.times_old) "[SphereUDE] Cannot resample times without `times_young` and `times_old` in SphereData."
+        times_resampled = data.times_young .+ rand(rng, length(data.times)) .* (data.times_old .- data.times_young)
+    else
+        times_resampled = data.times
+    end
 
-    for i in axes(data.directions, 2)
-        x = data.directions[:, i]
-        directions_resampled[:, i] = rand(rng, sampler(VonMisesFisher(x, data.kappas[i])))
+    # Resampling of directions
+    directions_resampled = similar(data.directions)
+    if resample_directions
+        for i in axes(data.directions, 2)
+            x = data.directions[:, i]
+            directions_resampled[:, i] = rand(rng, sampler(VonMisesFisher(x, data.kappas[i])))
+        end
+    else
+        directions_resampled = data.directions
     end
 
     return SphereData(
-        times = data.times,
+        times = times_resampled,
+        times_young = data.times_young,
+        times_old = data.times_old,
         directions = directions_resampled,
         kappas = data.kappas,
         L = data.L,
