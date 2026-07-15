@@ -33,7 +33,7 @@ end
 Draw the globe background and graticule (lines of latitude/longitude every
 30°) under the given orthographic projection `ortho`.
 """
-function _plot_globe(ortho; title::String = "")
+function _plot_globe(ortho; title::String = "", show_coastlines::Bool = false)
     θs = range(0, 2π; length = 361)
 
     globe_shape = Shape(cos.(θs), sin.(θs))
@@ -68,6 +68,10 @@ function _plot_globe(ortho; title::String = "")
         x_[[q[3] ≤ 0 for q in qs]] .= NaN
         y_[[q[3] ≤ 0 for q in qs]] .= NaN
         plot!(p, x_, y_; color = :gray60, linewidth = 0.4, label = "")
+    end
+
+    if show_coastlines
+        _plot_coastlines!(p, ortho)
     end
 
     return p
@@ -169,13 +173,14 @@ function plot_sphere(
     results::Union{Results,Nothing} = nothing,
     central_latitude::Union{Float64,Nothing} = nothing,
     central_longitude::Union{Float64,Nothing} = nothing;
+    show_coastlines::Bool = false,
     saveas::Union{String,Nothing} = nothing,
     title::String = "",
 )
 
     ortho = _make_ortho(central_latitude, central_longitude, data)
 
-    p = _plot_globe(ortho; title = title)
+    p = _plot_globe(ortho; title = title, show_coastlines = show_coastlines)
     _plot_data_points!(p, data, ortho)
     if !isnothing(results)
         _plot_fit_path!(p, results, ortho)
@@ -208,12 +213,13 @@ function plot_sphere(
     central_longitude::Union{Float64,Nothing} = nothing;
     main_result::Union{Results,Nothing} = nothing,
     show_resampled_points::Bool = true,
+    show_coastlines::Bool = false,
     saveas::Union{String,Nothing} = nothing,
     title::String = "",
 )
     ortho = _make_ortho(central_latitude, central_longitude, data)
 
-    p = _plot_globe(ortho; title = title)
+    p = _plot_globe(ortho; title = title, show_coastlines = show_coastlines)
     if show_resampled_points
         _plot_resampled_points!(p, ensemble.datasets, ortho)
     end

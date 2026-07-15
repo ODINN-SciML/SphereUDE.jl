@@ -65,6 +65,7 @@ include("Training/Sampling/bootstrap.jl")
 include("Training/Validation/crossvalidation.jl")
 
 # Plotting
+include("Plot/shapes.jl")
 include("Plot/plot.jl")
 
 
