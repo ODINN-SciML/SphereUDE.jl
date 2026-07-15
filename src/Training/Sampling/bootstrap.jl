@@ -24,13 +24,13 @@ function sample_uq(
     regressor::Union{AbstractRegressor,Nothing};
     n_samples::Int = 1,
     n_runs::Int = 1,
-    resample_times = true,
+    resample_times = false,
     resample_directions = true,
     parallel::Bool = false,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
     results = Vector{Results}(undef, n_samples)
-    datasets = Vector{AD}(undef, n_samples)
+    datasets = Vector{AbstractData}(undef, n_samples)
     seeds = rand(rng, UInt64, n_samples)
 
     _sample_one = i -> begin

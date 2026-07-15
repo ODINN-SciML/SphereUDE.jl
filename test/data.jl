@@ -32,7 +32,7 @@ function test_resample_data()
     n_datasets = 300
     mean_directions = zeros(size(directions))
     for _ = 1:n_datasets
-        resampled = resample_data(data, rng)
+        resampled = resample_data(data, rng; resample_times = false)
         mean_directions .+= resampled.directions
     end
     mean_directions ./= n_datasets
