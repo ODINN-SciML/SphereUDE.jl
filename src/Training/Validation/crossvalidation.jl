@@ -33,6 +33,7 @@ function train_cv(
     n_runs::Int = 1,
     parallel::Bool = false,
     refit::Bool = false,
+    refit_all::Bool = false,
     k_folds::Int = 5,
 ) where {AD<:AbstractData,AP<:AbstractParameters}
 
@@ -63,10 +64,10 @@ function train_cv(
         k, s = tasks[idx]
         λ = cv_reg.λ[k]
         data_train, data_val = splits[s]
-        params_k = _replace_field(params, :reg, _with_λ(params.reg, cv_idx, λ))
+        params_k = update_params(params; reg = _with_λ(params.reg, cv_idx, λ))
         # Silence each fold fit's own ADAM/LBFGS logging so it doesn't scroll
         # over the progress bars — same idea as train()'s multistart muting.
-        params_k = _replace_field(params_k, :verbose, false)
+        params_k = update_params(params_k; verbose = false)
         task_rng = Random.Xoshiro(seeds[idx])
 
         # Multithread within each training loop is set to false
@@ -106,13 +107,28 @@ function train_cv(
     params.verbose && @info "[train_cv] Best λ = $(best_λ) (validation loss = $(mean(all_scores[best_idx])))"
 
     final_results = if refit
-        final_params = _replace_field(params, :reg, _with_λ(params.reg, cv_idx, best_λ))
+        final_params = update_params(params; reg = _with_λ(params.reg, cv_idx, best_λ))
         train(data, final_params, rng, θ_trained, regressor; n_runs = n_runs, parallel = parallel)
     else
         nothing
     end
 
-    return CVResult(best_results = final_results, λ_grid = cv_reg.λ, scores = all_scores, best_λ = best_λ)
+    λ_results = Vector{Union{Results,Nothing}}(nothing, n_candidates)
+    if refit_all
+        for k = 1:n_candidates
+            λ = cv_reg.λ[k]
+            λ_params = update_params(params; reg = _with_λ(params.reg, cv_idx, λ))
+            λ_results[k] = train(data, λ_params, rng, θ_trained, regressor; n_runs = n_runs, parallel = parallel)
+        end
+    end
+
+    return CVResult(
+        best_results = final_results,
+        all_results  = λ_results,
+        λ_grid       = cv_reg.λ,
+        scores       = all_scores,
+        best_λ       = best_λ,
+    )
 end
 
 """

@@ -291,9 +291,20 @@ Plot the per-fold validation scores of a [`CVResult`](@ref) (see
 [`train_cv`](@ref)) as a function of λ, with λ on a log-scaled x-axis: each
 candidate λ's `k_folds` scores are scattered, with the mean and median score
 overlaid as lines, and the selected `best_λ` marked with a vertical line.
+
+When `show_all_results = true` and `data` is provided, a second globe plot is
+also returned, overlaying the fitted paths for every non-`nothing` entry in
+`cv.all_results` (see `refit_all` in [`train_cv`](@ref)), colored from blue
+(low λ) to red (high λ), with the best-λ path drawn on top in bold black.
+The function then returns `(p_cv, p_sphere)`; otherwise it returns `p_cv` only.
 """
 function plot_cv(
-    cv::CVResult;
+    cv::CVResult,
+    data::Union{AbstractData,Nothing} = nothing;
+    show_all_results::Bool = false,
+    central_latitude::Union{Float64,Nothing} = nothing,
+    central_longitude::Union{Float64,Nothing} = nothing,
+    show_coastlines::Bool = false,
     saveas::Union{String,Nothing} = nothing,
     title::String = "Cross-validation",
 )
@@ -302,7 +313,7 @@ function plot_cv(
     xs = vcat([fill(λs[k], length(cv.scores[k])) for k in eachindex(λs)]...)
     ys = vcat(cv.scores...)
 
-    p = plot(
+    p_cv = plot(
         xscale = :log10,
         xlabel = "λ",
         ylabel = "Validation loss",
@@ -310,14 +321,59 @@ function plot_cv(
         legend = :topright,
     )
 
-    scatter!(p, xs, ys; color = :gray60, markersize = 4, markerstrokewidth = 0, alpha = 0.5, label = "Per-fold score")
-    plot!(p, λs, mean.(cv.scores); color = :blue, linewidth = 2, marker = :circle, label = "Mean")
-    plot!(p, λs, median.(cv.scores); color = :red, linewidth = 2, marker = :diamond, label = "Median")
-    vline!(p, [cv.best_λ]; color = :black, linestyle = :dash, label = "Best λ")
+    scatter!(p_cv, xs, ys; color = :gray60, markersize = 4, markerstrokewidth = 0, alpha = 0.5, label = "Per-fold score")
+    plot!(p_cv, λs, mean.(cv.scores); color = :blue, linewidth = 2, marker = :circle, label = "Mean")
+    plot!(p_cv, λs, median.(cv.scores); color = :red, linewidth = 2, marker = :diamond, label = "Median")
+    vline!(p_cv, [cv.best_λ]; color = :black, linestyle = :dash, label = "Best λ")
 
     if !isnothing(saveas)
-        savefig(p, saveas)
+        savefig(p_cv, saveas)
     end
 
-    return p
+    if !show_all_results
+        return p_cv
+    end
+
+    @assert !isnothing(data) "plot_cv: `data` must be provided when `show_all_results = true`"
+    valid_idxs = findall(!isnothing, cv.all_results)
+    @assert !isempty(valid_idxs) "plot_cv: `cv.all_results` is all nothing — run train_cv with `refit_all = true`"
+
+    ortho = _make_ortho(central_latitude, central_longitude, data)
+    p_sphere = _plot_globe(ortho; title = "$(title) — all λ fits", show_coastlines = show_coastlines)
+    _plot_data_points!(p_sphere, data, ortho)
+
+    n_valid = length(valid_idxs)
+    palette = cgrad(:RdBu, n_valid; rev = true)
+    best_idx = findfirst(==(cv.best_λ), λs)
+
+    for (i, k) in enumerate(valid_idxs)
+        is_best = k == best_idx
+        is_best && continue  # draw best on top after the loop
+        _plot_fit_path!(p_sphere, cv.all_results[k], ortho;
+            color     = palette[i],
+            linewidth = 1.5,
+            alpha     = 0.6,
+            label     = "",
+        )
+    end
+
+    if !isnothing(best_idx) && !isnothing(cv.all_results[best_idx])
+        _plot_fit_path!(p_sphere, cv.all_results[best_idx], ortho;
+            color     = :black,
+            linewidth = 3.5,
+            alpha     = 1.0,
+            label     = "Best λ = $(cv.best_λ)",
+        )
+    end
+
+    plot!(p_sphere; legend = :topleft)
+    θs = range(0, 2π; length = 361)
+    plot!(p_sphere, cos.(θs), sin.(θs); color = :black, linewidth = 1.5, label = "")
+
+    if !isnothing(saveas)
+        base, ext = splitext(saveas)
+        savefig(p_sphere, base * "_all_results" * ext)
+    end
+
+    return p_cv, p_sphere
 end

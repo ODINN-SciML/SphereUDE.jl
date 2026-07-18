@@ -68,6 +68,7 @@ include("Training/Validation/crossvalidation.jl")
 # Plotting
 include("Plot/shapes.jl")
 include("Plot/plot.jl")
+include("Plot/video.jl")
 
 
 end
