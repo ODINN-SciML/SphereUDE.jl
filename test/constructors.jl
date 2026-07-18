@@ -103,3 +103,28 @@ function test_param_constructor()
     @test typeof(params2.reg[2].diff_mode) <: LuxNestedAD
     @test params2.quadrature.n_nodes == 50
 end
+
+function test_update_params()
+    params = SphereParameters(
+        tmin = 0.0,
+        tmax = 100.0,
+        u0 = [0.0, 0.0, 1.0],
+        ωmax = 1.0,
+    )
+
+    # Single override — only the target field changes
+    params2 = update_params(params; reltol = 1e-4)
+    @test params2.reltol == 1e-4
+    @test params2.abstol == params.abstol
+    @test params2.tmax == params.tmax
+
+    # Multiple overrides at once
+    params3 = update_params(params; reltol = 1e-5, abstol = 1e-5, niter_ADAM = 50)
+    @test params3.reltol == 1e-5
+    @test params3.abstol == 1e-5
+    @test params3.niter_ADAM == 50
+    @test params3.tmax == params.tmax
+
+    # Unknown field must raise an AssertionError
+    @test_throws AssertionError update_params(params; not_a_field = 1.0)
+end
