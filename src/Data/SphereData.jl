@@ -7,6 +7,8 @@ Spherical data information.
 """
 mutable struct SphereData{F<:AbstractFloat,IN<:Union{Integer,Nothing}} <: AbstractData
     times::Vector{F}
+    times_young::Union{Vector{F},Nothing}
+    times_old::Union{Vector{F},Nothing}
     directions::Matrix{F}
     kappas::Union{Vector{F},Nothing}
     L::Union{Function,Nothing}
@@ -16,11 +18,26 @@ mutable struct SphereData{F<:AbstractFloat,IN<:Union{Integer,Nothing}} <: Abstra
 end
 
 function SphereData(;
-    times::Vector{F},
+    times::Union{Vector{F},Nothing} = nothing,
+    times_young::Union{Vector{F},Nothing} = nothing,
+    times_old::Union{Vector{F},Nothing} = nothing,
     directions::Matrix{F},
     kappas::Union{Vector{F},Nothing},
     L::Union{Function,Nothing} = nothing,
 ) where {F<:AbstractFloat}
+
+    if isnothing(times)
+        @assert !isnothing(times_young) && !isnothing(times_old) "Provide either `times` or both `times_young` and `times_old`."
+        times = (times_young .+ times_old) ./ 2
+    end
+
+    # Sort all variables in time
+    idx = sortperm(times)
+    times = times[idx]
+    directions = directions[:, idx]
+    kappas = isnothing(kappas) ? nothing : kappas[idx]
+    times_young = isnothing(times_young) ? nothing : times_young[idx]
+    times_old = isnothing(times_old) ? nothing : times_old[idx]
 
     # Determine if data times are unique or not
     if length(unique(times)) < length(times)
@@ -37,6 +54,8 @@ function SphereData(;
     ft_type = typeof(first(times))
     return SphereData{ft_type,int_type}(
         times,
+        times_young,
+        times_old,
         directions,
         kappas,
         L,

@@ -168,7 +168,7 @@ function predict(
 
     # If numerical integration fails or bad choice of parameter, throw an error
     if sol.retcode != ReturnCode.Success
-        error("""
+        @warn """
         [SphereUDE] ODE solver failed with retcode $(sol.retcode).
 
         This is usually caused by one of the following:
@@ -180,7 +180,8 @@ function predict(
             when NN weights are still far from a good solution.
 
         Parameters: tmin=$(params.tmin), tmax=$(params.tmax), solver=$(typeof(params.solver)), reltol=$(params.reltol), abstol=$(params.abstol)
-        """)
+        """ maxlog=1
+        error("[SphereUDE] ODE solver failed with retcode $(sol.retcode) — see warning above for details.")
     end
 
     return Array(sol)

@@ -34,9 +34,12 @@ the per-fold validation losses for `λ_grid[k]` (so `mean(scores[k])` is the
 average validation loss used to pick `best_λ`). `best_results` is the
 `Results` of the final fit on the full dataset using `best_λ`, filled in
 only when that final refit is run (`nothing` otherwise).
+`all_results[k]` holds the full-data fit for `λ_grid[k]`, or `nothing` if
+the per-λ refit was not requested (see `refit_all` in [`train_cv`](@ref)).
 """
 @kwdef struct CVResult{F<:AbstractFloat} <: AbstractResult
     best_results::Union{Results,Nothing}
+    all_results::Vector{Union{Results,Nothing}}
     λ_grid::Vector{F}
     scores::Vector{Vector{F}}
     best_λ::F

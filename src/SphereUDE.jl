@@ -26,6 +26,7 @@ using StaticArrays
 include("DiffEq/adjoint.jl")
 include("Training/Regularization/Quadrature.jl")
 include("Parameters/SphereParameters.jl")
+include("Parameters/parameter_utils.jl")
 include("Data/SphereData.jl")
 include("Data/data_utils.jl")
 
@@ -65,7 +66,9 @@ include("Training/Sampling/bootstrap.jl")
 include("Training/Validation/crossvalidation.jl")
 
 # Plotting
+include("Plot/shapes.jl")
 include("Plot/plot.jl")
+include("Plot/video.jl")
 
 
 end

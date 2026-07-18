@@ -105,13 +105,12 @@ function test_train_cv()
 
     # No RegularizationCV term at all
     _, params_none, _ = _cv_test_setup(202)
-    params_none = SphereUDE._replace_field(params_none, :reg, [Regularization(order = 0, power = 2.0, λ = 1.0)])
+    params_none = update_params(params_none; reg = [Regularization(order = 0, power = 2.0, λ = 1.0)])
     @test_throws AssertionError train_cv(data, params_none, Random.MersenneTwister(1), nothing, regressor; k_folds = k_folds)
 
     # Two RegularizationCV terms at once — unsupported for now
-    params_two = SphereUDE._replace_field(
-        params, :reg,
-        [RegularizationCV(order = 0, power = 2.0, λ = [1.0, 2.0]), RegularizationCV(order = 1, power = 2.0, λ = [1.0, 2.0])],
+    params_two = update_params(params,
+        reg = [RegularizationCV(order = 0, power = 2.0, λ = [1.0, 2.0]), RegularizationCV(order = 1, power = 2.0, λ = [1.0, 2.0])],
     )
     @test_throws AssertionError train_cv(data, params_two, Random.MersenneTwister(1), nothing, regressor; k_folds = k_folds)
 

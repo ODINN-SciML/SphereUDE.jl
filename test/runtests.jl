@@ -32,6 +32,7 @@ const FAST_TESTS = get(ENV, "SPHERE_FAST_TESTS", "false") == "true"
     @testset "Constructors" begin
         test_reg_constructor()
         test_param_constructor()
+        test_update_params()
         test_regressor_interface()
     end
 

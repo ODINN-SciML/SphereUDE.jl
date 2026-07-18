@@ -1,16 +1,6 @@
 export CallbackOptimizationSet, callback_print
 
 """
-    _replace_field(obj, field, value)
-
-Returns a copy of `obj` with `field` set to `value`, leaving all other fields
-unchanged. Relies on the default positional constructor of `typeof(obj)`.
-"""
-function _replace_field(obj::T, field::Symbol, value) where {T}
-    return T((f === field ? value : getfield(obj, f) for f in fieldnames(T))...)
-end
-
-"""
     _print_loss_breakdown(loss_dict, n_iters)
 
 Prints the final total loss and its breakdown by term.

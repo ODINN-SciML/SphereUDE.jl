@@ -43,7 +43,7 @@ function train(
     run_params = if verbose
         params
     else
-        _replace_field(params, :verbose, false)
+        update_params(params; verbose = false)
     end
 
     all_results = Vector{Results}(undef, n_runs)
